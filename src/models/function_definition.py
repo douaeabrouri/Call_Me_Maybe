@@ -7,5 +7,5 @@ class ParameterType(BaseModel):
 class FunctionDefinition(BaseModel):
     name: str
     description: str
-    parametres: dict[str, ParameterType]
+    parameters: dict[str, ParameterType]
     returns: ParameterType

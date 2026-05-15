@@ -10,7 +10,8 @@ INPUTS_FOLDER = "data/input/"
 
 def load_function_definitions(path: str) -> Any:
     try:
-        with open(Path(INPUTS_FOLDER + path), 'r', encoding=("utf-8")) as file:
+        full_path = Path(INPUTS_FOLDER + path)
+        with open(full_path, 'r', encoding=("utf-8")) as file:
             data = json.load(file)
             return data, [FunctionDefinition.model_validate(function) for function in data]
 

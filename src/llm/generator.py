@@ -11,27 +11,13 @@ import json
 
 def choose_function(prompt: str, model, functions: List[FunctionDefinition]) -> str:
     
-    full_prompt = f"""
-        You are a function selector.
-        Available functions:
-        {functions}
-        User prompt:
-        {prompt}
-        Task:
-        Choose the single best function that matches the user's request.
-        Rules:
-        - Return only the function name
-        - Do NOT explain your answer
-        - Do NOT add extra text
-        - The function name must exist in the available functions list
-        Best function:
-        """
+    allowed_names: List[str] = [f['name']for f in functions]
+    full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
 
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
-    allowed_names: List[str] = [f['name']for f in functions]
 
-    for _ in range(15):
+    for _ in range(10):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())
@@ -46,26 +32,21 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition]) -> 
 def extract_parametres(prompt: str, model, choosen: dict) -> dict:
     
     parametres = choosen['parameters']
-
-    full_prompt = f"""
-        Extract parameters for this function:
-        {choosen['name']}
-        Parameters needed:
-        {json.dumps(parametres, indent=2)}
-        User prompt:
-        {prompt}
-        Task:
-        choose just the parametres and return a json string of those parametre
-        Rules:
-        Return ONLY this exact JSON structure with correct parameter names:
-        {json.dumps({k: '?' for k in parametres.keys()})}
-        json string: 
-        """
+    params_with_types = json.dumps(
+    {k: v['type'] for k, v in parametres.items()}, 
+    indent=2
+)
+    expected = json.dumps({k: '?' for k in parametres.keys()})
+    full_prompt = f"""Function: {choosen['name']}
+    Request: '{prompt}'
+    Extract the parameter values from the request and return ONLY this JSON with real values (not ?):
+    {expected}
+    JSON:"""
 
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     
-    for _ in range(15):
+    for _ in range(20):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())

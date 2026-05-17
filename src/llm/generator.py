@@ -1,3 +1,4 @@
+from ast import Dict
 from typing import List
 from torch.cuda.memory import get_per_process_memory_fraction
 from llm_sdk.llm_sdk import Small_LLM_Model
@@ -28,9 +29,9 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition]) -> 
 
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
-    allowed_names: List[str] = [f['name'] for f in functions]
+    allowed_names: List[str] = [f['name']for f in functions]
 
-    for _ in range(50):
+    for _ in range(15):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())
@@ -42,33 +43,29 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition]) -> 
     return model.decode(generate_ids)
 
 
-def extract_parametres(prompt: str, model, data) -> dict:
+def extract_parametres(prompt: str, model, choosen: dict) -> dict:
     
-    for f in data:
-        if choose_function(prompt, model, data) == f['name']:
-            parametres = f['parameters']
+    parametres = choosen['parameters']
 
     full_prompt = f"""
         Extract parameters for this function:
-        {choose_function(prompt, model, data)}
+        {choosen['name']}
         Parameters needed:
-        {parametres}
+        {json.dumps(parametres, indent=2)}
         User prompt:
         {prompt}
         Task:
         choose just the parametres and return a json string of those parametre
         Rules:
-        - Return ONLY a JSON object like: {{"a": ?, ...}}
-        - Return only the function name
-        - Do NOT explain your answer
-        - Do NOT add extra text
+        Return ONLY this exact JSON structure with correct parameter names:
+        {json.dumps({k: '?' for k in parametres.keys()})}
         json string: 
         """
 
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     
-    for _ in range(50):
+    for _ in range(15):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())

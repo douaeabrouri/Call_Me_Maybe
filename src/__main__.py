@@ -22,10 +22,12 @@ def main() -> None:
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
     for prompt in prompts:
-        func = choose_function(prompt,model,data)
-        para = extract_parametres(prompt, model, data)
+        func = choose_function(prompt, model, data)
+        choosen = next((f for f in data if f['name'] == func), data[0])
+        para = extract_parametres(prompt, model, choosen)
         res = function_caller(prompt, func, para)
         results.append(res)
     print(results)
 
 main()
+

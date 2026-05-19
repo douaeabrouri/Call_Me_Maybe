@@ -1,10 +1,8 @@
-
-
 install:
     pip install -r requirements.txt
 
 run:
-    python3 call_me_maybe.py
+    uv run python -m src
 
 debug:
     python3 -m db call_me_maybe.py

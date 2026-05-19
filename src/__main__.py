@@ -18,16 +18,21 @@ def main() -> None:
     with open(Path(INPUTS_FOLDER + "function_calling_tests.json"), 'r', encoding=('utf-8')) as f:
         import json
         folder = json.load(f)
+    path = model.get_path_to_vocab_file()
+    with open(path, 'r') as file:
+        vocab = json.load(file)
 
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
+    
     for prompt in prompts:
         func = choose_function(prompt, model, data)
         choosen = next((f for f in data if f['name'] == func), data[0])
-        para = extract_parametres(prompt, model, choosen)
+        para = extract_parametres(prompt, model, choosen, vocab)
+        # print(choosen)
+        # print(para)
         res = function_caller(prompt, func, para)
         results.append(res)
     print(results)
 
 main()
-

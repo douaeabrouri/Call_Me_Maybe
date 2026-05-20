@@ -1,4 +1,4 @@
-from src.llm.tokenizer import choose_function
+
 from typing import List
 from src.utils.file_loader import load_function_definitions
 from src.models.function_definition import FunctionDefinition
@@ -15,6 +15,7 @@ def main() -> None:
     functions = {
         f["name"] : f["description"] for f in data
     }
+
     with open(Path(INPUTS_FOLDER + "function_calling_tests.json"), 'r', encoding=('utf-8')) as f:
         import json
         folder = json.load(f)
@@ -24,15 +25,12 @@ def main() -> None:
 
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
-    
     for prompt in prompts:
         func = choose_function(prompt, model, data)
         choosen = next((f for f in data if f['name'] == func), data[0])
         para = extract_parametres(prompt, model, choosen, vocab)
-        # print(choosen)
-        # print(para)
         res = function_caller(prompt, func, para)
         results.append(res)
-    print(results)
+    # print(res)
 
 main()

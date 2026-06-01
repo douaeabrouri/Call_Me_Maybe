@@ -1,5 +1,5 @@
 from uu import decode
-from src.llm.generator import extract_parametres, choose_function
+from src.llm.generator import extract_parameters, choose_function
 from src.models.function_definition import FunctionDefinition
 import json
 import torch

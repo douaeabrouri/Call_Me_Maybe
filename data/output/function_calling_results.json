@@ -1,84 +1,57 @@
 [
     {
-        "prompt": "What is the sum of 2 and 3 and 5 and 7?",
+        "prompt": "What is the sum of 2 and 3?",
         "name": "fn_add_numbers",
         "parametres": {}
     },
     {
         "prompt": "What is the sum of 265 and 345?",
         "name": "fn_add_numbers",
-        "parametres": {
-            "a": "265",
-            "b": "345"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Greet shrek",
         "name": "fn_greet",
-        "parametres": {
-            "name": "shrek"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Greet john",
         "name": "fn_greet",
-        "parametres": {
-            "name": "john"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Reverse the string 'hello'",
         "name": "fn_reverse_string",
-        "parametres": {
-            "s": "hello"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Reverse the string 'world'",
         "name": "fn_reverse_string",
-        "parametres": {
-            "s": "world"
-        }
+        "parametres": {}
     },
     {
         "prompt": "What is the square root of 16?",
         "name": "fn_get_square_root",
-        "parametres": {
-            "a": "16"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Calculate the square root of 144",
         "name": "fn_get_square_root",
-        "parametres": {
-            "a": "144"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {
-            "source_string": "Hello 34 I'm 233 years old",
-            "regex": "numbers",
-            "replacement": "NUMBERS"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {
-            "source_string": "Programming is fun",
-            "regex": "a|e|i|o|u",
-            "replacement": "asterisk*"
-        }
+        "parametres": {}
     },
     {
         "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {
-            "source_string": "The cat sat on the mat with another cat",
-            "regex": "cat",
-            "replacement": "dog"
-        }
+        "parametres": {}
     }
 ]

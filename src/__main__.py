@@ -1,11 +1,11 @@
 
 from typing import List
 from src.utils.file_loader import load_function_definitions
-from src.models.function_definition import FunctionDefinition
 from pathlib import Path
-from src.llm.generator import  choose_function, extract_parametres
+from src.llm.generator import extract_parameters, choose_function, validate_parameters
 from src.pipeline.function_caller import function_caller
 from llm_sdk.llm_sdk import Small_LLM_Model
+
 
 
 def main() -> None:
@@ -28,9 +28,12 @@ def main() -> None:
     for prompt in prompts:
         func = choose_function(prompt, model, data)
         choosen = next((f for f in data if f['name'] == func), data[0])
-        para = extract_parametres(prompt, model, choosen, vocab)
+        para = extract_parameters(prompt, model, choosen, vocab)
+        if not validate_parameters(para, choosen):
+            para = {}
         res = function_caller(prompt, func, para)
         results.append(res)
-    # print(res)
-
+    
+    with open(Path("data/output/" + "function_calling_results.json"), "w") as f:
+        json.dump(results, f, indent=4)
 main()

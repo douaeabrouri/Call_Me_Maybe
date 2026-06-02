@@ -2,7 +2,7 @@
 from typing import List
 from src.utils.file_loader import load_function_definitions
 from pathlib import Path
-from src.llm.generator import extract_parameters, choose_function, validate_parameters
+from src.llm.generator import extract_parameters, choose_function, cast_parameters, validate_parameters
 from src.pipeline.function_caller import function_caller
 from llm_sdk.llm_sdk import Small_LLM_Model
 
@@ -29,8 +29,9 @@ def main() -> None:
         func = choose_function(prompt, model, data)
         choosen = next((f for f in data if f['name'] == func), data[0])
         para = extract_parameters(prompt, model, choosen, vocab)
+        para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
-            return para
+            para = {}
         res = function_caller(prompt, func, para)
         results.append(res)
     with open(Path("data/output/" + "function_calling_results.json"), "w") as f:

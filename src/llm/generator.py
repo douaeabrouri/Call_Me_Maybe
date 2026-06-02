@@ -76,6 +76,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - Use exact parameter names
     - No explanations, no extra keys
     - Extract values DIRECTLY from the user request
+    - If parameter type is number, return a number, not a string.
     Expected format:
     {expected}
     JSON:
@@ -105,24 +106,59 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
 
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
-    # try:
+
     expected_params = function_definition['parameters']
     for name, info in expected_params.items():
         if name not in parameters:
             return False
         expected_type = info['type']
-            if expected_type == "string":
-               if not isinstance(parameters[name], str):
-                  return False
-            elif expected_type == "number":
-                if not isinstance(parameters[name], int):
-                   return False
-            elif expected_type == "integer":
-                if not isinstance(parameters[name], int):
-                   return False
-            elif expected_type == "boolean":
-                if not isinstance(parameters[name], bool):
-                   return False
+        if expected_type == "string":
+           if not isinstance(parameters[name], str):
+              return False
+        elif expected_type == "number":
+            if not isinstance(parameters[name], int):
+               return False
+        elif expected_type == "integer":
+            if not isinstance(parameters[name], int):
+               return False
+        elif expected_type == "boolean":
+            if not isinstance(parameters[name], bool):
+               return False
     return True
-    # except Exception as e:
-    #     print(f"Error: {e}")
+
+
+def cast_parameters(
+    params: dict,
+    function_def: dict
+) -> dict:
+
+    expected = function_def["parameters"]
+
+    for name, info in expected.items():
+
+        if name not in params:
+            continue
+
+        expected_type = info["type"]
+
+        if expected_type == "number":
+
+            try:
+                params[name] = int(params[name])
+            except (ValueError, TypeError):
+                pass
+        elif expected_type == "floating":
+
+            try:
+                params[name] = float(params[name])
+            except (ValueError, TypeError):
+                pass
+        elif expected_type == "boolean":
+
+            if isinstance(params[name], str):
+
+                params[name] = (
+                    params[name].lower() == "true"
+                )
+
+    return params

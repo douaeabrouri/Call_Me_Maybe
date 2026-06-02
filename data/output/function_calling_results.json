@@ -10,7 +10,10 @@
     {
         "prompt": "What is the sum of 265 and 345?",
         "name": "fn_add_numbers",
-        "parametres": {}
+        "parametres": {
+            "a": 265,
+            "b": 345
+        }
     },
     {
         "prompt": "Greet shrek",
@@ -43,12 +46,16 @@
     {
         "prompt": "What is the square root of 16?",
         "name": "fn_get_square_root",
-        "parametres": {}
+        "parametres": {
+            "a": 16
+        }
     },
     {
         "prompt": "Calculate the square root of 144",
         "name": "fn_get_square_root",
-        "parametres": {}
+        "parametres": {
+            "a": 144
+        }
     },
     {
         "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
@@ -64,8 +71,8 @@
         "name": "fn_substitute_string_with_regex",
         "parametres": {
             "source_string": "Programming is fun",
-            "regex": ".*[aeiouAEIOU].*",
-            "replacement": "asterisk"
+            "regex": ".*[aeiouAEIOU]i",
+            "replacement": "*"
         }
     },
     {

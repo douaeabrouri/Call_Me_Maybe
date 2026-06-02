@@ -2,7 +2,10 @@
     {
         "prompt": "What is the sum of 2 and 3?",
         "name": "fn_add_numbers",
-        "parametres": {}
+        "parametres": {
+            "a": 2,
+            "b": 3
+        }
     },
     {
         "prompt": "What is the sum of 265 and 345?",
@@ -12,22 +15,30 @@
     {
         "prompt": "Greet shrek",
         "name": "fn_greet",
-        "parametres": {}
+        "parametres": {
+            "name": "shrek"
+        }
     },
     {
         "prompt": "Greet john",
         "name": "fn_greet",
-        "parametres": {}
+        "parametres": {
+            "name": "john"
+        }
     },
     {
         "prompt": "Reverse the string 'hello'",
         "name": "fn_reverse_string",
-        "parametres": {}
+        "parametres": {
+            "s": "hello"
+        }
     },
     {
         "prompt": "Reverse the string 'world'",
         "name": "fn_reverse_string",
-        "parametres": {}
+        "parametres": {
+            "s": "world"
+        }
     },
     {
         "prompt": "What is the square root of 16?",
@@ -42,16 +53,28 @@
     {
         "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {}
+        "parametres": {
+            "source_string": "Hello 34 I'm 233 years old",
+            "regex": "34",
+            "replacement": "34"
+        }
     },
     {
         "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {}
+        "parametres": {
+            "source_string": "Programming is fun",
+            "regex": ".*[aeiouAEIOU].*",
+            "replacement": "asterisk"
+        }
     },
     {
         "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'",
         "name": "fn_substitute_string_with_regex",
-        "parametres": {}
+        "parametres": {
+            "source_string": "The cat sat on the mat with another cat",
+            "regex": "cat",
+            "replacement": "dog"
+        }
     }
 ]

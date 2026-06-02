@@ -88,14 +88,13 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     for _ in range(70):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
-        for token_string, token_id in vocab.items():
-            clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
-            test = current_json + clean
+        for token_id, token_string in vocab.items():
+            test = current_json
             if not is_valid_json_prefix(test):
-                logits_tensor[token_id] = float('-inf')
+                logits_tensor[int(token_string)] = float('-inf')
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
-        token = id_to_token.get(next_token_id, '')
+        token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
         if current_json.strip().endswith('}'):
             break
@@ -106,21 +105,24 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
 
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
+    # try:
     expected_params = function_definition['parameters']
-
     for name, info in expected_params.items():
         if name not in parameters:
             return False
         expected_type = info['type']
-
-        if expected_type == "string":
-            if not isinstance(parameters[name], str):
-                return False
-        elif expected_type == "integer":
-            if not isinstance(parameters[name], int):
-                return False
-        elif expected_type == "boolean":
-            if not isinstance(parameters[name], bool):
-                return False
+            if expected_type == "string":
+               if not isinstance(parameters[name], str):
+                  return False
+            elif expected_type == "number":
+                if not isinstance(parameters[name], int):
+                   return False
+            elif expected_type == "integer":
+                if not isinstance(parameters[name], int):
+                   return False
+            elif expected_type == "boolean":
+                if not isinstance(parameters[name], bool):
+                   return False
     return True
-
+    # except Exception as e:
+    #     print(f"Error: {e}")

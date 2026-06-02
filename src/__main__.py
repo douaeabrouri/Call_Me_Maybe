@@ -30,10 +30,9 @@ def main() -> None:
         choosen = next((f for f in data if f['name'] == func), data[0])
         para = extract_parameters(prompt, model, choosen, vocab)
         if not validate_parameters(para, choosen):
-            para = {}
+            return para
         res = function_caller(prompt, func, para)
         results.append(res)
-    
     with open(Path("data/output/" + "function_calling_results.json"), "w") as f:
         json.dump(results, f, indent=4)
 main()

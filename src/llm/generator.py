@@ -6,6 +6,7 @@ from src.utils.file_loader import load_function_definitions
 import torch
 from src.models.function_definition import FunctionDefinition
 import json
+import sys
 
 
 def is_valid_json_prefix(s: str) -> bool:  
@@ -28,17 +29,13 @@ def is_valid_json_prefix(s: str) -> bool:
             return True
         return False
 
-def choose_function(prompt: str, model, functions: List[FunctionDefinition]) -> str:
+def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
     
-    allowed_names: List[str] = [f['name']for f in functions]
+    allowed_names: List[str] = [f['name'] for f in functions]
     full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
 
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
-
-    path = model.get_path_to_vocab_file()
-    with open(path, 'r') as file:
-        vocab = json.load(file)
     current_text = ""
     for _ in range(10):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
@@ -59,8 +56,8 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         {k: v['type'] for k, v in parametres.items()}, 
         indent = 2
     )
-
     expected = json.dumps({k: v['type'] for k, v in parametres.items()})
+
     full_prompt = f"""
     You are a parameter extractor.
     Function:
@@ -122,10 +119,7 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
            if not isinstance(parameters[name], str):
               return False
         elif expected_type == "number":
-            if not isinstance(parameters[name], int):
-               return False
-        elif expected_type == "integer":
-            if not isinstance(parameters[name], int):
+            if not isinstance(parameters[name], (int, float)):
                return False
         elif expected_type == "boolean":
             if not isinstance(parameters[name], bool):
@@ -133,38 +127,26 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
     return True
 
 
-def cast_parameters(
-    params: dict,
-    function_def: dict
-) -> dict:
+def cast_parameters(params: dict, function_def: dict) -> dict:
 
     expected = function_def["parameters"]
-
     for name, info in expected.items():
-
         if name not in params:
             continue
-
         expected_type = info["type"]
-
         if expected_type == "number":
-
             try:
                 params[name] = int(params[name])
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                print(f"ERROR: {e}")
+                sys.exit(0)
         elif expected_type == "floating":
-
             try:
                 params[name] = float(params[name])
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as e:
+                print(f"ERROR: {e}")
+                sys.exit(0)
         elif expected_type == "boolean":
-
             if isinstance(params[name], str):
-
-                params[name] = (
-                    params[name].lower() == "true"
-                )
-
+                params[name] = (params[name].lower() == "true")
     return params

@@ -1,25 +1,21 @@
 install:
-    pip install -r requirements.txt
+	@uv sync
 
 run:
-    uv run python -m src
+	@uv run python -m src
 
 debug:
-    python3 -m db call_me_maybe.py
+	@uv run python -m pdb -m src
 
 clean:
-    rm -rf __pycach
-
-act:
-    source call_env/bin/activate
-
-deact:
-    deactivate
+	@find . -type d -name __pycache__ -exec rm -rf {} +
+	@find . -type d -name .mypy_cache -exec rm -rf {} +
+	@find . -type d -name .ruff_cache -exec rm -rf {} +
 
 lint:
-    flake8 . || exit 0
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-def --check-untyped-defs || exit 0
+	@flake8 . || exit 0
+	@mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs || exit 0
 
 lint-strict:
-    flake8 .
-	mypy . --strict
+	@flake8 .
+	@mypy . --strict

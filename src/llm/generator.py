@@ -79,6 +79,15 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - choose exactly regex and replacement
     Expected format:
     {expected}
+    For example:
+    Function:
+    fn_substitute_string_with_regex
+    Description:
+    Replace all occurrences matching a regex pattern in a string.
+    Parameters:
+    source_string: original text
+    regex: regex pattern to match
+    replacement: text that replaces each match
     JSON:
     """
 
@@ -103,6 +112,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         current_json += token
         if current_json.strip().endswith('}'):
             break
+    print(current_json)
     try:
         return json.loads(current_json.strip())
     except json.JSONDecodeError:

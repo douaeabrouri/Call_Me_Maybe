@@ -57,8 +57,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     parametres = choosen['parameters']
     params_with_types = json.dumps(
         {k: v['type'] for k, v in parametres.items()}, 
-        indent=2
+        indent = 2
     )
+
     expected = json.dumps({k: v['type'] for k, v in parametres.items()})
     full_prompt = f"""
     You are a parameter extractor.
@@ -70,13 +71,15 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {params_with_types}
     User request:
     {prompt}
-    Rules:
+    Rules: 
     - Extract ONLY parameter values
     - DO NOT execute the function
-    - Use exact parameter names
+    - Return ONLY JSON
     - No explanations, no extra keys
     - Extract values DIRECTLY from the user request
-    - If parameter type is number, return a number, not a string.
+    - Use exact parameter names
+    - If a parameter type is number, return a JSON number
+    - choose exactly regex and replacement
     Expected format:
     {expected}
     JSON:
@@ -89,10 +92,14 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     for _ in range(70):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
-        for token_id, token_string in vocab.items():
-            test = current_json
-            if not is_valid_json_prefix(test):
-                logits_tensor[int(token_string)] = float('-inf')
+        for token_string, token_id in vocab.items():
+            candidate = (
+                current_json +
+                token_string.replace('Ġ', ' ')
+                .replace('Ċ', '\n')
+            )
+            if not is_valid_json_prefix(candidate):
+                logits_tensor[token_id] = float('-inf')
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
@@ -103,7 +110,6 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         return json.loads(current_json.strip())
     except json.JSONDecodeError:
         return {}
-
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
 

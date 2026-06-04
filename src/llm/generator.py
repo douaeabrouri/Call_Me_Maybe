@@ -79,40 +79,40 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - choose exactly regex and replacement
     Expected format:
     {expected}
-    For example:
-    Function:
-    fn_substitute_string_with_regex
-    Description:
-    Replace all occurrences matching a regex pattern in a string.
-    Parameters:
-    source_string: original text
-    regex: regex pattern to match
-    replacement: text that replaces each match
     JSON:
     """
+    # For example:
+    # Function:
+    # fn_substitute_string_with_regex
+    # Description:
+    # Replace all occurrences matching a regex pattern in a string.
+    # Parameters:
+    # source_string: original text
+    # regex: regex pattern to match
+    # replacement: text that replaces each match
 
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     current_json = ""
     id_to_token: dict = {v: k for k, v in vocab.items()}
-    for _ in range(70):
+    for _ in range(150):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
+        """Test for the regex and replacement tokens"""
         logits_tensor = torch.tensor(logits)
-        for token_string, token_id in vocab.items():
-            candidate = (
-                current_json +
-                token_string.replace('Ġ', ' ')
-                .replace('Ċ', '\n')
-            )
-            if not is_valid_json_prefix(candidate):
-                logits_tensor[token_id] = float('-inf')
+        topk = torch.topk(logits_tensor, 5)
+        for score, token_id in zip(topk.values.tolist(),
+                           topk.indices.tolist()):
+                token = id_to_token.get(token_id, "")
+                candidate = current_json + token.replace('Ġ', ' ').replace('Ċ', '\n')
+                if not is_valid_json_prefix(candidate):
+                   logits_tensor[token_id] = float('-inf')
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
         if current_json.strip().endswith('}'):
             break
-    print(current_json)
+    print(repr(current_json))
     try:
         return json.loads(current_json.strip())
     except json.JSONDecodeError:

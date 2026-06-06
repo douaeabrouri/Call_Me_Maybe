@@ -29,8 +29,19 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
     if "replacement" not in parameters:
         return parameters
 
-    match = re.search(r'with\s+([A-Za-z_*]+)', prompt, re.IGNORECASE)
-
+    match = re.search(
+        r"with\s+'([^']+)'",
+        prompt,
+        re.IGNORECASE
+    )
+    if match:
+        parameters["replacement"] = match.group(1)
+        return parameters
+    match = re.search(
+        r"with\s+([A-Za-z0-9_*]+)",
+        prompt,
+        re.IGNORECASE
+    )
     if match:
         parameters["replacement"] = match.group(1)
 
@@ -62,9 +73,10 @@ def main() -> None:
             para = fix_regex(para, prompt)
         if 'replacement' in para:
             para = fix_replacement(para, prompt)
+        para = cast_parameters(para, choosen)
+        print(para)
         if not validate_parameters(para, choosen):
             para = {}
-        para = cast_parameters(para, choosen)
         res = function_caller(prompt, func, para)
         results.append(res)
     with open(Path("data/output/" + "function_calling_results.json"), "w") as f:

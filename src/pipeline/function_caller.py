@@ -9,5 +9,5 @@ def function_caller(user_prompt: str, function_name: str, function_parametre: di
     return {
         'prompt': user_prompt,
         'name': function_name,
-        'parametres': function_parametre
+        'parameters':  function_parametre
     }

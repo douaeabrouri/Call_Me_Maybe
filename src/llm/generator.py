@@ -104,9 +104,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
             token = current_json + token_string
             if not is_valid_json_prefix(token):
                 logits_tensor[token_id] = float('-inf')
-        # next_token_id = int(torch.argmax(logits_tensor).item())
-        probs = torch.softmax(logits_tensor, dim=-1)
-        next_token_id = torch.multinomial(probs, 1).item()
+        next_token_id = int(torch.argmax(logits_tensor).item())
+        # probs = torch.softmax(logits_tensor, dim=-1)
+        # next_token_id = torch.multinomial(probs, 1).item()
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
@@ -147,9 +147,9 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
         expected_type = info["type"]
         try:
             if expected_type == "integer":
-                params[name] = int(float(str(params[name])))
+                params[name] = int(str(params[name]))
             elif expected_type == "number":
-                params[name] = float(params[name])
+                params[name] = int(float(params[name]))
             elif expected_type == "boolean":
                 if isinstance(params[name], str):
                     params[name] = params[name].lower() == "true"

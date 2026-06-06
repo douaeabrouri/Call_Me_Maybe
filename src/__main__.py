@@ -73,8 +73,8 @@ def main() -> None:
             para = fix_regex(para, prompt)
         if 'replacement' in para:
             para = fix_replacement(para, prompt)
-        para = cast_parameters(para, choosen)
         print(para)
+        para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
             para = {}
         res = function_caller(prompt, func, para)

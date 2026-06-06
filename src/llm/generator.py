@@ -29,6 +29,11 @@ def is_valid_json_prefix(s: str) -> bool:
             return True
         return False
 
+def get_numbers_from_prompt(prompt: str) -> set:
+    """Extract all number strings from prompt."""
+    import re as re_module
+    return set(re_module.findall(r'\d+', prompt))
+
 def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
     
     allowed_names: List[str] = [f['name'] for f in functions]
@@ -52,7 +57,7 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
 def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     parametres = choosen['parameters']
     params_with_types = json.dumps(
-        {k: v['type'] for k, v in parametres.items()}, 
+        {k: v['type'] for k, v in parametres.items()},
         indent = 2
     )
     expected = json.dumps({k: v['type'] for k, v in parametres.items()})
@@ -67,7 +72,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {params_with_types}
     User request:
     {prompt}
-    Rules: 
+    Rules:
     - Extract ONLY parameter values
     - DO NOT execute the function
     - Return ONLY JSON
@@ -75,10 +80,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - Extract values DIRECTLY from the user request
     - Use exact parameter names
     - If a parameter type is number, return a JSON number
-    - The values must appear explicitly in the user request.
-    - Do not invent values.
-    - Extract only text explicitly mentioned by the user.
-    - Do not infer regex patterns.
+    - regex must describe WHAT should be replaced
+    - Return the values that would be passed to the function call.
+    - when replacing all numbers, regex should match all numbers, not a specific number
     Expected format:
     {expected}
     JSON:
@@ -91,24 +95,24 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     valid_json_chars = set()
     for token_string, token_id in vocab.items():
         clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
-        if any(c in clean for c in '{}[]",:0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\'):
-           valid_json_chars.add((token_string, int(token_id)))
+        if any(c in clean for c in '[]"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\'):
+           valid_json_chars.add((clean, int(token_id)))
     for _ in range(150):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
         for token_string, token_id in valid_json_chars:
-            clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
-            token = current_json + clean
+            token = current_json + token_string
             if not is_valid_json_prefix(token):
                 logits_tensor[token_id] = float('-inf')
-        next_token_id = int(torch.argmax(logits_tensor).item())
+        # next_token_id = int(torch.argmax(logits_tensor).item())
+        probs = torch.softmax(logits_tensor, dim=-1)
+        next_token_id = torch.multinomial(probs, 1).item()
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
         if current_json.strip().endswith('}'):
             break
     try:
-        print(current_json)
         return json.loads(current_json.strip())
     except json.JSONDecodeError:
         return {}
@@ -126,11 +130,13 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
         elif expected_type == "number":
             if not isinstance(parameters[name], (int, float)):
                return False
+        elif expected_type == "integer":
+            if not isinstance(parameters[name], int):
+                return False
         elif expected_type == "boolean":
             if not isinstance(parameters[name], bool):
                return False
     return True
-
 
 def cast_parameters(params: dict, function_def: dict) -> dict:
 
@@ -139,19 +145,16 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
         if name not in params:
             continue
         expected_type = info["type"]
-        if expected_type == "number":
-            try:
-                params[name] = int(params[name])
-            except (ValueError, TypeError) as e:
-                print(f"ERROR: {e}")
-                sys.exit(0)
-        elif expected_type == "floating":
-            try:
+        try:
+            if expected_type == "integer":
+                params[name] = int(float(str(params[name])))
+            elif expected_type == "number":
                 params[name] = float(params[name])
-            except (ValueError, TypeError) as e:
-                print(f"ERROR: {e}")
-                sys.exit(0)
-        elif expected_type == "boolean":
-            if isinstance(params[name], str):
-                params[name] = (params[name].lower() == "true")
+            elif expected_type == "boolean":
+                if isinstance(params[name], str):
+                    params[name] = params[name].lower() == "true"
+            else:
+                params[name] = str(params[name])
+        except (ValueError, TypeError) as e:
+            print(f"Warning: could not cast {name}: {e}")
     return params

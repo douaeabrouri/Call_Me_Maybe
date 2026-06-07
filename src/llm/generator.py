@@ -82,7 +82,21 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - If a parameter type is number, return a JSON number
     - regex must describe WHAT should be replaced
     - Return the values that would be passed to the function call.
-    - when replacing all numbers, regex should match all numbers, not a specific number
+    and for the regex and replacement:
+    Example 1:
+    Request:
+    Replace all digits in "abc123" with X
+    JSON:
+        "source_string": "abc123",
+        "regex": "[0-9]+",
+        "replacement": "X"
+    Example 2:
+    Request:
+    Replace all vowels in "hello" with "asterisk"
+    JSON:
+        "source_string": "hello",
+        "regex": "[aeiouAEIOU]",
+        "replacement": "*"
     Expected format:
     {expected}
     JSON:
@@ -104,9 +118,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
             token = current_json + token_string
             if not is_valid_json_prefix(token):
                 logits_tensor[token_id] = float('-inf')
-        next_token_id = int(torch.argmax(logits_tensor).item())
-        # probs = torch.softmax(logits_tensor, dim=-1)
-        # next_token_id = torch.multinomial(probs, 1).item()
+        # next_token_id = int(torch.argmax(logits_tensor).item())
+        probs = torch.softmax(logits_tensor, dim=-1)
+        next_token_id = torch.multinomial(probs, 1).item()
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token

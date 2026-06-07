@@ -65,18 +65,18 @@ def main() -> None:
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
     for prompt in prompts:
-    # prompt: str = "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
+        # prompt: str = "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
         func = choose_function(prompt, model, data, vocab)
         choosen = next((f for f in data if f['name'] == func), data[0])
         para = extract_parameters(prompt, model, choosen, vocab)
-        if 'regex' in para:
-            para = fix_regex(para, prompt)
-        if 'replacement' in para:
-            para = fix_replacement(para, prompt)
-        print(para)
+        # if 'regex' in para:
+        #     para = fix_regex(para, prompt)
+        # if 'replacement' in para:
+        #     para = fix_replacement(para, prompt)
         para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
             para = {}
+        print(para)
         res = function_caller(prompt, func, para)
         results.append(res)
     with open(Path("data/output/" + "function_calling_results.json"), "w") as f:

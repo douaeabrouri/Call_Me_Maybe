@@ -74,12 +74,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {prompt}
     Rules:
     - Extract ONLY parameter values
-    - DO NOT execute the function
-    - Return ONLY JSON
     - No explanations, no extra keys
     - Extract values DIRECTLY from the user request
     - Use exact parameter names
-    - If a parameter type is number, return a JSON number
     - regex must describe WHAT should be replaced
     - Return the values that would be passed to the function call.
     and for the regex and replacement:
@@ -92,7 +89,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         "replacement": "X"
     Example 2:
     Request:
-    Replace all vowels in "hello" with "asterisk"
+    Replace all vowels in "hello"
     JSON:
         "source_string": "hello",
         "regex": "[aeiouAEIOU]",
@@ -101,7 +98,6 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {expected}
     JSON:
     """
-
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     current_json = ""
@@ -111,16 +107,14 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
         if any(c in clean for c in '[]"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\'):
            valid_json_chars.add((clean, int(token_id)))
-    for _ in range(150):
+    for _ in range(70):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
         for token_string, token_id in valid_json_chars:
             token = current_json + token_string
             if not is_valid_json_prefix(token):
                 logits_tensor[token_id] = float('-inf')
-        # next_token_id = int(torch.argmax(logits_tensor).item())
-        probs = torch.softmax(logits_tensor, dim=-1)
-        next_token_id = torch.multinomial(probs, 1).item()
+        next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
@@ -160,7 +154,9 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
             continue
         expected_type = info["type"]
         try:
-            if expected_type == "integer":
+            if expected_type == "string":
+                params[name] = str(params[name])
+            elif expected_type == "integer":
                 params[name] = int(str(params[name]))
             elif expected_type == "number":
                 params[name] = int(float(params[name]))

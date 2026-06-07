@@ -6,22 +6,21 @@ from llm_sdk.llm_sdk import Small_LLM_Model
 from src.decoder.token_filter import is_valid_regex, look_like_just_copy, is_valid_replacement
 from pathlib import Path
 from typing import List
+import torch
+
 
 def fix_regex(parameters: dict, prompt: str) -> dict:
-    NATURAL_TO_REGEX = {
-        "numbers": "\\d+",
-        "digits": "\\d+", 
-        "vowels": "[aeiouAEIOU]",
-        "letters": "[a-zA-Z]+",
-        "spaces": "\\s+",
-    }
+    import re
     if 'regex' not in parameters:
         return parameters
+    
     val = parameters['regex']
-    for word, pattern in NATURAL_TO_REGEX.items():
-        if word in prompt.lower() and val not in NATURAL_TO_REGEX.values():
-            parameters['regex'] = pattern
-            break
+    
+    if len(val) > 20 and 'source_string' in parameters and val == parameters['source_string']:
+        match = re.search(r"(?:word|replace|substitute)\s+['\"]?(\w+)['\"]?\s+with", prompt, re.IGNORECASE)
+        if match:
+            parameters['regex'] = re.escape(match.group(1))
+    
     return parameters
 
 def fix_replacement(parameters: dict, prompt: str) -> dict:
@@ -29,22 +28,32 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
     if "replacement" not in parameters:
         return parameters
 
-    match = re.search(
-        r"with\s+'([^']+)'",
-        prompt,
-        re.IGNORECASE
-    )
+    val = parameters["replacement"]
+    WORD_TO_CHAR = {
+        "asterisks": "*",
+        "asterisk": "*",
+        "stars": "*",
+        "star": "*",
+        "underscore": "_",
+        "dash": "-",
+        "empty": "",
+        "nothing": "",
+        "blank": "",
+        "space": " ",
+        "hash": "#",
+        "pound": "#",
+        "x": "X",
+    }
+    if val.lower() in WORD_TO_CHAR:
+        parameters["replacement"] = WORD_TO_CHAR[val.lower()]
+        return parameters
+    match = re.search(r"with\s+'([^']+)'", prompt, re.IGNORECASE)
     if match:
         parameters["replacement"] = match.group(1)
         return parameters
-    match = re.search(
-        r"with\s+([A-Za-z0-9_*]+)",
-        prompt,
-        re.IGNORECASE
-    )
+    match = re.search(r"with\s+([A-Za-z0-9_*#@!]+)", prompt, re.IGNORECASE)
     if match:
         parameters["replacement"] = match.group(1)
-
     return parameters
 
 def main() -> None:
@@ -65,14 +74,14 @@ def main() -> None:
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
     for prompt in prompts:
-        # prompt: str = "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
         func = choose_function(prompt, model, data, vocab)
         choosen = next((f for f in data if f['name'] == func), data[0])
         para = extract_parameters(prompt, model, choosen, vocab)
-        # if 'regex' in para:
-        #     para = fix_regex(para, prompt)
-        # if 'replacement' in para:
-        #     para = fix_replacement(para, prompt)
+        if 'regex' in para:
+            para = fix_regex(para, prompt)
+        if 'replacement' in para:
+            para = fix_replacement(para, prompt)
+
         para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
             para = {}

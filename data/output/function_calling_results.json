@@ -54,7 +54,7 @@
         "prompt": "Calculate the square root of 144",
         "name": "fn_get_square_root",
         "parameters": {
-            "a": 12
+            "a": 144
         }
     },
     {
@@ -71,8 +71,8 @@
         "name": "fn_substitute_string_with_regex",
         "parameters": {
             "source_string": "Programming is fun",
-            "regex": ".*[aeiouAEIOU]*",
-            "replacement": "asterisk"
+            "regex": ".*[aeiouAEIOU]",
+            "replacement": "*"
         }
     },
     {
@@ -80,7 +80,7 @@
         "name": "fn_substitute_string_with_regex",
         "parameters": {
             "source_string": "The cat sat on the mat with another cat",
-            "regex": "The cat sat on the mat with another cat",
+            "regex": "cat",
             "replacement": "dog"
         }
     }

@@ -37,7 +37,10 @@ def get_numbers_from_prompt(prompt: str) -> set:
 def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
     
     allowed_names: List[str] = [f['name'] for f in functions]
-    full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
+    full_prompt = f"""You must choose ONLY from this exact list of functions: {allowed_names}
+    If no function matches the request, respond with: NO_MATCH
+    Request: '{prompt}'
+    Function name:"""
 
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
@@ -52,7 +55,10 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
         for name in allowed_names:
             if name in decoded_text:
                 return name
-    return current_text.strip()
+    result = current_text.strip()
+    if result not in allowed_names:
+       return "NO_MATCH"
+    return result
 
 def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     parametres = choosen['parameters']
@@ -79,7 +85,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     - Use exact parameter names
     - regex must describe WHAT should be replaced
     - Return the values that would be passed to the function call.
-    and for the regex and replacement:
+    AND for the regex and replacement:
     Example 1:
     Request:
     Replace all digits in "abc123" with X
@@ -98,6 +104,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {expected}
     JSON:
     """
+
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     current_json = ""
@@ -138,9 +145,6 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
         elif expected_type == "number":
             if not isinstance(parameters[name], (int, float)):
                return False
-        elif expected_type == "integer":
-            if not isinstance(parameters[name], int):
-                return False
         elif expected_type == "boolean":
             if not isinstance(parameters[name], bool):
                return False
@@ -156,8 +160,6 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
         try:
             if expected_type == "string":
                 params[name] = str(params[name])
-            elif expected_type == "integer":
-                params[name] = int(str(params[name]))
             elif expected_type == "number":
                 params[name] = int(float(params[name]))
             elif expected_type == "boolean":

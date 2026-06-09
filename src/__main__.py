@@ -102,10 +102,10 @@ def main() -> None:
     
         try:
             func = choose_function(prompt, model, data, vocab)
-            print("dzt mn hna")
+            print(func)
             if func == "NO_MATCH":
                 print("DKHLT")
-                print(f"{Colors.YELLOW}WARNING: No function chosen for prompt '{prompt}'{Colors.RESET.value}")
+                print(f"{Colors.YELLOW.value}WARNING: No function chosen for prompt '{prompt}'{Colors.RESET.value}")
                 results.append({"prompt": prompt, "error": f"No matching function for '{func}'"})
                 continue
 
@@ -127,7 +127,7 @@ def main() -> None:
             print(f"{Colors.RED.value}ERROR: Failed to extract parameters for prompt '{prompt}': {e} {Colors.RESET.value}")
             results.append({"prompt": prompt, "error": str(e)})
             continue
-    
+
         if 'regex' in para:
             para = fix_regex(para, prompt)
         if 'replacement' in para:

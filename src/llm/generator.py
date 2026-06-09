@@ -37,11 +37,11 @@ def get_numbers_from_prompt(prompt: str) -> set:
 def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
     
     allowed_names: List[str] = [f['name'] for f in functions]
-    full_prompt = f"""You must choose ONLY from this exact list of functions: {allowed_names}
-    If no function matches the request, respond with: NO_MATCH
+    full_prompt = f"""Give the name of the functionand return just the function name ,
+    If no function matches the request RETURN : NO_MATCH, AND this is the allowed function: {allowed_names}
     Request: '{prompt}'
-    Function name:"""
-
+    """
+    
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
     current_text = ""
@@ -52,6 +52,7 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
         generate_ids.append(next_token_id)
         decoded_text = model.decode(generate_ids)
         current_text  += vocab.get(str(next_token_id), '')
+        print(f"decoded_text: {decoded_text}")
         for name in allowed_names:
             if name in decoded_text:
                 return name
@@ -59,6 +60,7 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
     if result not in allowed_names:
        return "NO_MATCH"
     return result
+
 
 def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     parametres = choosen['parameters']
@@ -88,6 +90,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     AND for the regex and replacement:
     Example 1:
     Request:
+
     Replace all digits in "abc123" with X
     JSON:
         "source_string": "abc123",

@@ -19,3 +19,6 @@ def load_function_definitions(path: str) -> Any:
     except json.decoder.JSONDecodeError as e:
         print(f"ERROR: invalid json file: {e}")
         sys.exit(0)
+    except Exception:
+        print(f"ERROR: unexpected error while loading function")
+        sys.exit(0)

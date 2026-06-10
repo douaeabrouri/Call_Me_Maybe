@@ -103,9 +103,8 @@ def main() -> None:
             func = choose_function(prompt, model, data, vocab)
             if func == "NO_MATCH":
                 print(f"{Colors.YELLOW.value}WARNING: No function chosen for prompt '{prompt}'{Colors.RESET.value}")
-                results.append({"prompt": prompt, "error": f"No matching function for '{func}'"})
+                results.append({"prompt": prompt, "error": f"No matching function'"})
                 continue
-                
             choosen = next((f for f in data if f['name'] == func), None)
             if choosen is None:
                 print(f"{Colors.YELLOW.value}WARNING: Function '{func}' not found in definitions{Colors.RESET.value}")
@@ -115,7 +114,6 @@ def main() -> None:
             print(f"{Colors.RED.value}ERROR: Failed to choose function for prompt '{prompt}': {e}{Colors.RESET.value}")
             results.append({'prompt': prompt, 'error': f"Failed to chosen function: {e}"})
             continue
-
         try:
             para = extract_parameters(prompt, model, choosen, vocab)
             if not para:
@@ -124,7 +122,6 @@ def main() -> None:
             print(f"{Colors.RED.value}ERROR: Failed to extract parameters for prompt '{prompt}': {e} {Colors.RESET.value}")
             results.append({"prompt": prompt, "error": str(e)})
             continue
-
         if 'regex' in para:
             para = fix_regex(para, prompt)
         if 'replacement' in para:

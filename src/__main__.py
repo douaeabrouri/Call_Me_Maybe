@@ -58,8 +58,6 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
 
 def main() -> None:
 
-
-
     import json
     model = Small_LLM_Model()
     path = model.get_path_to_vocab_file()
@@ -80,6 +78,7 @@ def main() -> None:
         f["name"] : f["description"] for f in data
     }
     INPUTS_FOLDER = "data/input/"
+
     try:
         with open(Path(INPUTS_FOLDER + "function_calling_tests.json"), 'r', encoding=('utf-8')) as f:
             import json
@@ -102,13 +101,11 @@ def main() -> None:
     
         try:
             func = choose_function(prompt, model, data, vocab)
-            print(func)
             if func == "NO_MATCH":
-                print("DKHLT")
                 print(f"{Colors.YELLOW.value}WARNING: No function chosen for prompt '{prompt}'{Colors.RESET.value}")
                 results.append({"prompt": prompt, "error": f"No matching function for '{func}'"})
                 continue
-
+                
             choosen = next((f for f in data if f['name'] == func), None)
             if choosen is None:
                 print(f"{Colors.YELLOW.value}WARNING: Function '{func}' not found in definitions{Colors.RESET.value}")

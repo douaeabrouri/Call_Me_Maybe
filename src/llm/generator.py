@@ -37,30 +37,35 @@ def get_numbers_from_prompt(prompt: str) -> set:
 def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
     
     allowed_names: List[str] = [f['name'] for f in functions]
-    full_prompt = f"""Give the name of the functionand return just the function name ,
-    If no function matches the request RETURN : NO_MATCH, AND this is the allowed function: {allowed_names}
-    Request: '{prompt}'
+
+    full_prompt = f"""
+    Request: {prompt}
+    Available functions:
+    {allowed_names}
+    Return exactly one function name. no explanations,no extra text
+    Answer:
     """
     
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
     current_text = ""
-    for _ in range(10):
+    for _ in range(40):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())
         generate_ids.append(next_token_id)
         decoded_text = model.decode(generate_ids)
+        print(decoded_text)
         current_text  += vocab.get(str(next_token_id), '')
-        print(f"decoded_text: {decoded_text}")
+        # print(current_text)
         for name in allowed_names:
             if name in decoded_text:
                 return name
     result = current_text.strip()
+    print(result)
     if result not in allowed_names:
        return "NO_MATCH"
     return result
-
 
 def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     parametres = choosen['parameters']
@@ -107,7 +112,6 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {expected}
     JSON:
     """
-
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     current_json = ""

@@ -66,13 +66,13 @@ def main() -> None:
     try:
         data, function  = load_function_definitions("functions_definition.json")
         if not data:
-            print(f"{Colors.RED.value}ERROR: No function definitions found in 'functions_definition.json' {Colors.RESET.value}")
+            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} No function definitions found in 'functions_definition.json'")
             return
     except FileNotFoundError:
-        print(f"{Colors.RED.value}ERROR Functions_definition.json not found {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Functions_definition.json not found")
         return
     except json.JSONDecodeError as e:
-        print(f"{Colors.RED.value}ERROR functions_definition.json is malformed: {e} {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}")
         return 
     functions = {
         f["name"] : f["description"] for f in data
@@ -84,84 +84,68 @@ def main() -> None:
             import json
             folder = json.load(f)
     except FileNotFoundError:
-        print(f"{Colors.RED.value}ERROR: function_calling_tests.json not found in {INPUTS_FOLDER} {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} function_calling_tests.json not found in {INPUTS_FOLDER}")
         return
     except json.JSONDecodeError as e:
-        print(f"{Colors.RED.value}ERROR: function_calling_tests.json in malformed: {e} {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} function_calling_tests.json in malformed: {e}")
         return
     except KeyError as e:
-        print(f"{Colors.RED.value}ERROR: Missing exception in function_calling_tests.json: {e} {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Missing exception in function_calling_tests.json: {e}")
         return
     
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
-    prompt = "Reverse the string 'hello'"
-    # for i, prompt in enumerate(prompts):
+    for i, prompt in enumerate(prompts):
 
-        # print(f"{Colors.PURPLE.value}\n[{i+1}/{len(prompts)}] Processing {Colors.RESET.value}: '{prompt}'")
+        print(f"{Colors.PURPLE.value}\n[{i+1}/{len(prompts)}] Processing {Colors.RESET.value}: '{prompt}'")
     
-    try:
-        func = choose_function(prompt, model, data, vocab)
-        if func == "NO_MATCH":
-            print(f"{Colors.YELLOW.value}WARNING: No function chosen for prompt '{prompt}'{Colors.RESET.value}")
-            results.append({"prompt": prompt, "error": f"No matching function'"})
-            # continue
-        choosen = next((f for f in data if f['name'] == func), None)
-        if choosen is None:
-            print(f"{Colors.YELLOW.value}WARNING: Function '{func}' not found in definitions{Colors.RESET.value}")
-            results.append({"prompt": prompt, "error": f"Function '{func}' not defined"})
-            # continue
-    except Exception as e:
-        print(f"{Colors.RED.value}ERROR: Failed to choose function for prompt '{prompt}': {e}{Colors.RESET.value}")
-        results.append({'prompt': prompt, 'error': f"Failed to chosen function: {e}"})
-        # continue
-    try:
-        para = extract_parameters(prompt, model, choosen, vocab)
-        if not para:
-            print(f"{Colors.YELLOW.value}WARNING: No parameters extracted for prompt '{prompt}' {Colors.RESET.value}")
-    except Exception as e:
-        print(f"{Colors.RED.value}ERROR: Failed to extract parameters for prompt '{prompt}': {e} {Colors.RESET.value}")
-        results.append({"prompt": prompt, "error": str(e)})
-        # continue
-    if 'regex' in para:
-        para = fix_regex(para, prompt)
-    if 'replacement' in para:
-        para = fix_replacement(para, prompt)
-    
-    try:
-        para = cast_parameters(para, choosen)
-        if not validate_parameters(para, choosen):
-            print(f"{Colors.YELLOW.value}WARNING: Extracted parameters are not valid for prompt '{prompt}' {Colors.RESET.value}")
-            para = {}
-    except Exception as e:
-        print(f"{Colors.RED.value}ERROR: Failed to cast/validate parameters for prompt '{prompt}': {e} {Colors.RESET.value}")
-    
-    try:
-        res = function_caller(prompt, func, para)
-        results.append(res)
-    except Exception as e:
-        print(f"{Colors.RED.value}ERROR: Faild to call function for prompt '{prompt}': {e} {Colors.RESET.value}")
-        results.append({"prompt": prompt, "error": str(e)})
+        try:
+            func = choose_function(prompt, model, data, vocab)
+            print(f"function chosen: {func}")
+            if func == "NO_MATCH" or func is None:
+                print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'")
+                results.append({"prompt": prompt, "error": f"No matching function'"})
+                continue
+            choosen = next((f for f in data if f['name'] == func), None)
+            if choosen is None:
+                results.append({"prompt": prompt, "error": f"Function '{func}' not defined"})
+                continue
+        except Exception as e:
+            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to choose function for prompt '{prompt}': {e}")
+            results.append({'prompt': prompt, 'error': f"Failed to choosen function: {e}"})
+            continue
+        try:
+            para = extract_parameters(prompt, model, choosen, vocab)
+            print(f"parameters extracted: {para}")
+            if not para:
+                print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No parameters extracted for prompt '{prompt}'")
+        except Exception as e:
+            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to extract parameters for prompt '{prompt}': {e}")
+            results.append({"prompt": prompt, "error": str(e)})
+            continue
+        if 'regex' in para:
+            para = fix_regex(para, prompt)
+        if 'replacement' in para:
+            para = fix_replacement(para, prompt)
+        
+        try:
+            para = cast_parameters(para, choosen)
+            if not validate_parameters(para, choosen):
+                print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} Extracted parameters are not valid for prompt '{prompt}'")
+                para = {}
+        except Exception as e:
+            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to cast/validate parameters for prompt '{prompt}': {e}")
+        
+        try:
+            res = function_caller(prompt, func, para)
+            results.append(res)
+        except Exception as e:
+            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Faild to call function for prompt '{prompt}': {e}")
+            results.append({"prompt": prompt, "error": str(e)})
     try:
         with open(Path("data/output/" + "function_calling_results.json"), "w") as f:
             json.dump(results, f, indent=4)
     except Exception as e:
-        print(f"{Colors.RED.value}ERROR: Faild to write output: {e} {Colors.RESET.value}")
+        print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Faild to write output: {e}")
 
 main()
-
-#   {
-#     "name": "fn_add_numbers",
-#     "description": "Add two numbers together and return their sum.",
-#     "parameters": {
-#       "a": {
-#         "type": "number"
-#       },
-#       "b": {
-#         "type": "number"
-#       }
-#     },
-#     "returns": {
-#       "type": "number"
-#     }
-#   },

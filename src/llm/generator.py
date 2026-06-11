@@ -38,35 +38,19 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
     
     allowed_names: List[str] = [f['name'] for f in functions]
 
-    full_prompt = f"""
-    Request: {prompt}
-    Available functions:
-    {chr(10).join(allowed_names)}
-
-    Rules:
-    - NO explanation.
-    - NO extra keys,
-    -return the function name.
-    - Select exactly one function.
-    - No examples.
-    - If no function matche return NO_MATCH
-    """
+    full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
     
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
-    # current_text = ""
-    for _ in range(20):
+    for _ in range(30):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())
         generate_ids.append(next_token_id)
         decoded_text = model.decode(generate_ids)
-        # current_text  += vocab.get(str(next_token_id), '')
-    decoded_text = model.decode(generate_ids).strip()
-    print(f"decoded_text ----> {decoded_text}")
-    for name in allowed_names:
-        if name in decoded_text:
-            return name
+        for name in allowed_names:
+            if name in decoded_text:
+                return name
     return "NO_MATCH"
 
 def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:

@@ -1,15 +1,27 @@
 [
     {
         "prompt": "what is the mutiply of 3 and 4?",
-        "error": "No matching function'"
+        "name": "fn_add_numbers",
+        "parameters": {
+            "a": 3,
+            "b": 4
+        }
     },
     {
         "prompt": "What is the sum of 2 and 3?",
-        "error": "No matching function'"
+        "name": "fn_add_numbers",
+        "parameters": {
+            "a": 2,
+            "b": 3
+        }
     },
     {
         "prompt": "What is the sum of 265 and 345?",
-        "error": "No matching function'"
+        "name": "fn_add_numbers",
+        "parameters": {
+            "a": 265,
+            "b": 345
+        }
     },
     {
         "prompt": "Greet shrek",
@@ -55,14 +67,29 @@
     },
     {
         "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
-        "error": "No matching function'"
+        "name": "fn_substitute_string_with_regex",
+        "parameters": {
+            "source_string": "Hello 34 I'm 233 years old",
+            "regex": "([0-9]+)",
+            "replacement": "NUMBERS"
+        }
     },
     {
         "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
-        "error": "No matching function'"
+        "name": "fn_substitute_string_with_regex",
+        "parameters": {
+            "source_string": "Programming is fun",
+            "regex": ".*[aeiouAEIOU]",
+            "replacement": "*"
+        }
     },
     {
         "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'",
-        "error": "No matching function'"
+        "name": "fn_substitute_string_with_regex",
+        "parameters": {
+            "source_string": "The cat sat on the mat with another cat",
+            "regex": "cat",
+            "replacement": "dog"
+        }
     }
 ]

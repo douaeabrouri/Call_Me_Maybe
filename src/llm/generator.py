@@ -4,6 +4,7 @@ from src.utils.file_loader import load_function_definitions
 from llm_sdk.llm_sdk import Small_LLM_Model
 from torch.cuda import _get_generator
 from typing import List
+from src.utils.visualizer import GenerationVisualizer
 import torch
 import json
 import sys
@@ -53,7 +54,7 @@ def choose_function(prompt: str, model, functions: List[FunctionDefinition], voc
                 return name
     return "NO_MATCH"
 
-def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
+def extract_parameters(prompt: str, model, choosen: dict, vocab, visualize = False) -> dict:
     parametres = choosen['parameters']
     params_with_types = json.dumps(
         {k: v['type'] for k, v in parametres.items()},
@@ -98,6 +99,9 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
     {expected}
     JSON:
     """
+    viz = GenerationVisualizer(enabled=visualize)
+    viz.reset(prompt)
+
     input_id = model.encode(full_prompt)[0].tolist()
     generate_ids: List[int] = []
     current_json = ""
@@ -107,6 +111,8 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
         clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
         if any(c in clean for c in '[]"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\'):
            valid_json_chars.add((clean, int(token_id)))
+    blocked = 0
+    allowed = 0
     for _ in range(70):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
@@ -114,16 +120,24 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab) -> dict:
             token = current_json + token_string
             if not is_valid_json_prefix(token):
                 logits_tensor[token_id] = float('-inf')
+                blocked += 1
+            else :
+                allowed += 1
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
+        viz.update(current_json, token, blocked, allowed)
         if current_json.strip().endswith('}'):
             break
+
+    result = {}
     try:
-        return json.loads(current_json.strip())
+        result = json.loads(current_json.strip())
+        viz.finish(current_json, success=True)
     except json.JSONDecodeError:
-        return {}
+        viz.finish(current_json, success=False)
+    return result
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
 

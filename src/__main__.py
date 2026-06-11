@@ -97,7 +97,7 @@ def main() -> None:
     results: List[dict] = []
     for i, prompt in enumerate(prompts):
 
-        print(f"{Colors.PURPLE.value}\n[{i+1}/{len(prompts)}] Processing {Colors.RESET.value}: '{prompt}'")
+        # print( f"{Colors.PURPLE.value}\n[{i+1}/{len(prompts)}] Processing {Colors.RESET.value}: '{prompt}'")
     
         try:
             func = choose_function(prompt, model, data, vocab)
@@ -115,7 +115,7 @@ def main() -> None:
             results.append({'prompt': prompt, 'error': f"Failed to choosen function: {e}"})
             continue
         try:
-            para = extract_parameters(prompt, model, choosen, vocab)
+            para = extract_parameters(prompt, model, choosen, vocab, visualize = True)
             print(f"parameters extracted: {para}")
             if not para:
                 print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No parameters extracted for prompt '{prompt}'")
@@ -128,20 +128,12 @@ def main() -> None:
         if 'replacement' in para:
             para = fix_replacement(para, prompt)
         
-        try:
-            para = cast_parameters(para, choosen)
-            if not validate_parameters(para, choosen):
-                print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} Extracted parameters are not valid for prompt '{prompt}'")
-                para = {}
-        except Exception as e:
-            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to cast/validate parameters for prompt '{prompt}': {e}")
-        
-        try:
-            res = function_caller(prompt, func, para)
-            results.append(res)
-        except Exception as e:
-            print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Faild to call function for prompt '{prompt}': {e}")
-            results.append({"prompt": prompt, "error": str(e)})
+        para = cast_parameters(para, choosen)
+        if not validate_parameters(para, choosen):
+            print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} Extracted parameters are not valid for prompt '{prompt}'")
+            para = {}        
+        res = function_caller(prompt, func, para)
+        results.append(res)
     try:
         with open(Path("data/output/" + "function_calling_results.json"), "w") as f:
             json.dump(results, f, indent=4)

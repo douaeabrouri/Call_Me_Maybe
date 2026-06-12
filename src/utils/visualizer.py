@@ -3,7 +3,6 @@ from typing import Optional
 from src.enums.Colors import Colors
 
 
-
 class GenerationVisualizer:
 
     def __init__(self, enabled: bool = True) -> None:
@@ -19,7 +18,7 @@ class GenerationVisualizer:
         if not self.enabled:
             return
         print(f"\n{'─' * 60}")
-        print(f"  Generating for: '{prompt[:50]}...'")
+        print(f"  {Colors.YELLOW.value}Generating for:{Colors.RESET.value} '{prompt[:50]}...'")
         print(f"{'─' * 60}")
 
     def update(
@@ -50,7 +49,7 @@ class GenerationVisualizer:
     def finish(self, final_json: str, success: bool) -> None:
         if not self.enabled:
             return
-        status = "{Colors.GREEN.value}SUCCESS{Colors.RESET.value}" if success else "{Colors.RED.value}FAILED{Colors.RESET.value}"
+        status = f"{Colors.GREEN.value}SUCCESS{Colors.RESET.value}" if success else  f"{Colors.RED.value}FAILED{Colors.RESET.value}"
         print(f"\n  Result   : {status}")
         print(f"  Final    : {final_json[:60]}")
         print(f"{'─' * 60}\n")

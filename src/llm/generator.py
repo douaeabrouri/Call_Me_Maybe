@@ -31,19 +31,28 @@ def is_valid_json_prefix(s: str) -> bool:
         return False
 
 def get_numbers_from_prompt(prompt: str) -> set:
-    """Extract all number strings from prompt."""
     import re as re_module
     return set(re_module.findall(r'\d+', prompt))
 
-def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
-    
-    allowed_names: List[str] = [f['name'] for f in functions]
+def is_garbage_prompt(prompt: str) -> bool:
+    import re
+    words = prompt.split()
+    real_words = [w for w in words if re.match(r'^[a-zA-Z]{2,}$', w)]
+    return len(real_words) < 2
 
+
+def choose_function(prompt: str, model, functions: List[FunctionDefinition], vocab) -> str:
+
+    if is_garbage_prompt(prompt):
+        return "NO_MATCH"
+
+    allowed_names: List[str] = [f['name'] for f in functions]
     full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
     
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
-    for _ in range(30):
+
+    for _ in range(10):
         logits = model.get_logits_from_input_ids(input_ids + generate_ids)
         next_token_logits = torch.tensor(logits)    
         next_token_id = int(torch.argmax(next_token_logits).item())
@@ -113,7 +122,7 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab, visualize = Fal
            valid_json_chars.add((clean, int(token_id)))
     blocked = 0
     allowed = 0
-    for _ in range(70):
+    for _ in range(50):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
         for token_string, token_id in valid_json_chars:
@@ -130,31 +139,36 @@ def extract_parameters(prompt: str, model, choosen: dict, vocab, visualize = Fal
         viz.update(current_json, token, blocked, allowed)
         if current_json.strip().endswith('}'):
             break
-
     result = {}
     try:
         result = json.loads(current_json.strip())
-        viz.finish(current_json, success=True)
+        success: bool = True
     except json.JSONDecodeError:
-        viz.finish(current_json, success=False)
+        success = False
+    viz.finish(current_json, success)
     return result
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
-
-    expected_params = function_definition['parameters']
-    for name, info in expected_params.items():
-        if name not in parameters:
-            return False
-        expected_type = info['type']
-        if expected_type == "string":
-           if not isinstance(parameters[name], str):
-              return False
-        elif expected_type == "number":
-            if not isinstance(parameters[name], (int, float)):
-               return False
-        elif expected_type == "boolean":
-            if not isinstance(parameters[name], bool):
-               return False
+    try:
+        expected_params = function_definition['parameters']
+        for name, info in expected_params.items():
+            if name not in parameters:
+                return False
+            expected_type = info['type']
+            if expected_type == "string":
+               if not isinstance(parameters[name], str):
+                  return False
+            elif expected_type == "number":
+                if not isinstance(parameters[name], (int, float)):
+                   return False
+            elif expected_type == "boolean":
+                if not isinstance(parameters[name], bool):
+                   return False
+            else:
+                raise ValueError(f"Unsupported parameter type: {expected_type}")
+    except ValueError as e:
+        print(f"Validation error: {e}")
+        return False
     return True
 
 def cast_parameters(params: dict, function_def: dict) -> dict:

@@ -1,11 +1,7 @@
 [
     {
-        "prompt": "what is the mutiply of 3 and 4?",
-        "name": "fn_add_numbers",
-        "parameters": {
-            "a": 3,
-            "b": 4
-        }
+        "prompt": "w",
+        "error": "No matching function'"
     },
     {
         "prompt": "What is the sum of 2 and 3?",

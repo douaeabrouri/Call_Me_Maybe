@@ -1,13 +1,13 @@
 
+from src.decoder.token_filter import is_valid_regex, look_like_just_copy, is_valid_replacement
 from src.llm.generator import extract_parameters, choose_function, cast_parameters, validate_parameters
 from src.utils.file_loader import load_function_definitions
 from src.pipeline.function_caller import function_caller
 from llm_sdk.llm_sdk import Small_LLM_Model
-from src.decoder.token_filter import is_valid_regex, look_like_just_copy, is_valid_replacement
+from src.enums.Colors import Colors
 from pathlib import Path
 from typing import List
 import torch
-from src.enums.Colors import Colors
 
 def fix_regex(parameters: dict, prompt: str) -> dict:
     import re
@@ -68,6 +68,8 @@ def main() -> None:
         if not data:
             print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} No function definitions found in 'functions_definition.json'")
             return
+        unknow_function = {"name": "Unknow_function", "description": "No matching function found for the given prompt", "parameters": {}, "return": {}}
+        data.append(unknow_function)
     except FileNotFoundError:
         print(f"{Colors.RED.value}ERROR:{Colors.RESET.value} Functions_definition.json not found")
         return
@@ -78,7 +80,6 @@ def main() -> None:
         f["name"] : f["description"] for f in data
     }
     INPUTS_FOLDER = "data/input/"
-
     try:
         with open(Path(INPUTS_FOLDER + "function_calling_tests.json"), 'r', encoding=('utf-8')) as f:
             import json
@@ -96,12 +97,12 @@ def main() -> None:
     prompts: List[str] = [f['prompt'] for f in folder]
     results: List[dict] = []
     for i, prompt in enumerate(prompts):
-
-        # print( f"{Colors.PURPLE.value}\n[{i+1}/{len(prompts)}] Processing {Colors.RESET.value}: '{prompt}'")
-    
+        if prompt.strip() == "":
+            print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} EMPTY PROMPT")
+            results.append({"prompt": prompt, "error": "Empty prompt"})
+            continue
         try:
             func = choose_function(prompt, model, data, vocab)
-            print(f"function chosen: {func}")
             if func == "NO_MATCH" or func is None:
                 print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'")
                 results.append({"prompt": prompt, "error": f"No matching function'"})
@@ -116,7 +117,6 @@ def main() -> None:
             continue
         try:
             para = extract_parameters(prompt, model, choosen, vocab, visualize = True)
-            print(f"parameters extracted: {para}")
             if not para:
                 print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No parameters extracted for prompt '{prompt}'")
         except Exception as e:
@@ -127,7 +127,6 @@ def main() -> None:
             para = fix_regex(para, prompt)
         if 'replacement' in para:
             para = fix_replacement(para, prompt)
-        
         para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
             print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} Extracted parameters are not valid for prompt '{prompt}'")

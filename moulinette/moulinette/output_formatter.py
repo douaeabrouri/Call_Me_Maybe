@@ -7,10 +7,12 @@ import sys
 # Try to use colorama if available, otherwise fall back to no colors
 try:
     from colorama import init, Fore, Style
+
     init(autoreset=True)
     COLORS_AVAILABLE = True
 except ImportError:
     COLORS_AVAILABLE = False
+
 
 # Check if we're in a terminal that supports colors
 def _supports_color() -> bool:
@@ -116,7 +118,9 @@ class ColoredOutput:
                 print(">>> VALID <<<")
         else:
             if self.use_color:
-                print(f"{Fore.RED}{Style.BRIGHT}>>> INVALID: {reason} <<<{Style.RESET_ALL}")
+                print(
+                    f"{Fore.RED}{Style.BRIGHT}>>> INVALID: {reason} <<<{Style.RESET_ALL}"
+                )
             else:
                 print(f">>> INVALID: {reason} <<<")
 

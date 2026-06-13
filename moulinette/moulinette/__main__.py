@@ -49,7 +49,9 @@ class Moulinette:
 
         functions_definition_path = input_dir / "functions_definition.json"
         function_calling_tests_path = input_dir / "function_calling_tests.json"
-        function_calling_corrections_path = correction_dir / "function_calling_corrections.json"
+        function_calling_corrections_path = (
+            correction_dir / "function_calling_corrections.json"
+        )
 
         self.output.info(f"Generating {set} exercise set...")
         self.output.separator()
@@ -104,20 +106,20 @@ class Moulinette:
 
         # Get exercises and build function lookup
         filtered_exercises = get_exercises_by_visibility(set)
-        fn_name_to_function = {
-            fn.__name__: fn for fn in filtered_exercises.keys()
-        }
+        fn_name_to_function = {fn.__name__: fn for fn in filtered_exercises.keys()}
 
         # Build corrections from exercises
         corrections = []
         for fn, data in filtered_exercises.items():
             for test in data["tests"]:
-                corrections.append({
-                    "prompt": test["prompt"],
-                    "name": fn.__name__,
-                    "parameters": test["fn_args"],
-                    "expected_output": fn(**test["fn_args"]),
-                })
+                corrections.append(
+                    {
+                        "prompt": test["prompt"],
+                        "name": fn.__name__,
+                        "parameters": test["fn_args"],
+                        "expected_output": fn(**test["fn_args"]),
+                    }
+                )
 
         total_score = 0
         total_tests = len(corrections)
@@ -125,14 +127,18 @@ class Moulinette:
         self.output.info(f"Grading against {set} set ({total_tests} tests)")
         self.output.separator()
 
-        for i, (student_answer, correction) in enumerate(zip(student_answers, corrections), 1):
+        for i, (student_answer, correction) in enumerate(
+            zip(student_answers, corrections), 1
+        ):
             self.output.test_header(i, total_tests)
             self.output.prompt(correction["prompt"])
 
             # Check prompt match
             if student_answer.get("prompt") != correction["prompt"]:
                 self.output.expected("Expected prompt", correction["prompt"])
-                self.output.actual("Student prompt", student_answer.get("prompt", "<missing>"))
+                self.output.actual(
+                    "Student prompt", student_answer.get("prompt", "<missing>")
+                )
                 self.output.test_result(False, "prompt mismatch")
                 continue
 
@@ -163,7 +169,9 @@ class Moulinette:
                 self.output.actual("Student called", f"{fn_name}({fn_params})")
                 self.output.actual("Student result", student_output)
                 # Show what was expected
-                self.output.expected("Expected call", f"{correction['name']}({correction['parameters']})")
+                self.output.expected(
+                    "Expected call", f"{correction['name']}({correction['parameters']})"
+                )
                 self.output.expected("Expected result", correction["expected_output"])
                 self.output.test_result(False, "wrong output")
                 continue

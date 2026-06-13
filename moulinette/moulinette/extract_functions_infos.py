@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from moulinette.functions_definition import get_functions_by_visibility
 
-
 # Map Python types to JSON schema types
 TYPE_MAP = {
     "int": "integer",
@@ -42,13 +41,13 @@ def extract_function_info(fn: Callable) -> FunctionInfo:
         description = fn.__doc__.strip().split("\n")[0]
 
     # Get argument names from signature
-    args_names = list(fn.__code__.co_varnames[:fn.__code__.co_argcount])
+    args_names = list(fn.__code__.co_varnames[: fn.__code__.co_argcount])
 
     # Get type hints including return type
     type_hints = get_type_hints(fn)
 
     # Get return type
-    return_type_raw = type_hints.pop('return', str).__name__
+    return_type_raw = type_hints.pop("return", str).__name__
     return_type = TYPE_MAP.get(return_type_raw, "string")
 
     # Build parameters dict
@@ -63,7 +62,7 @@ def extract_function_info(fn: Callable) -> FunctionInfo:
         name=name,
         description=description,
         parameters=parameters,
-        returns=ParameterInfo(type=return_type)
+        returns=ParameterInfo(type=return_type),
     )
 
 

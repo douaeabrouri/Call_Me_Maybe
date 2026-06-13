@@ -34,7 +34,7 @@ def generate_function_calling_corrections(
                 prompt=test["prompt"],
                 name=fn_to_call.__name__,
                 parameters=test["fn_args"],
-                expected_output=fn_to_call(**test["fn_args"])
+                expected_output=fn_to_call(**test["fn_args"]),
             )
             corrections.append(correction)
     return corrections

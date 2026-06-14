@@ -79,42 +79,64 @@ def extract_parameters(
     )
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
 
-    full_prompt = f"""
-    You are a parameter extractor.
-    Function:
-    {choosen['name']}
-    Description:
-    {choosen['description']}
-    Expected parameters:
-    {params_with_types}
-    User request:
-    {prompt}
-    Rules:
-    - Extract ONLY parameter values
-    - No explanations, no extra keys
-    - Extract values DIRECTLY from the user request
-    - regex must describe WHAT should be replaced
-    - Return the values that would be passed to the function call.
-    AND for the regex and replacement:
-    Example 1:
-    Request:
+    if 'regex' not in parametres:
+        full_prompt = f"""
+        You are a parameter extractor.
+        Function:
+        {choosen['name']}
+        Description:
+        {choosen['description']}
+        Expected parameters:
+        {params_with_types}
+        User request:
+        {prompt}
+        Rules:
+        - Extract ONLY parameter values
+        - No explanations, no extra keys
+        - Extract values DIRECTLY from the user request
+        - Return the values that would be passed to the function call.
+        Expected format:
+        {expected}
+        JSON:
+        """
+    else:
+        full_prompt = f"""
+        You are a parameter extractor.
+        Function:
+        {choosen['name']}
+        Description:
+        {choosen['description']}
+        Expected parameters:
+        {params_with_types}
+        User request:
+        {prompt}
+        Rules:
+        - Extract ONLY parameter values
+        - No explanations, no extra keys
+        - Extract values DIRECTLY from the user request
+        - regex must describe WHAT should be replaced
+        - Return the values that would be passed to the function call.
+        AND for the regex and replacement:
+        Example 1:
+        Request:
+    
+        Replace all digits in "abc123" with X
+        JSON:
+            "source_string": "abc123",
+            "regex": "[0-9]+",
+            "replacement": "X"
+        Example 2:
+        Request:
+        Replace all vowels in "hello"
+        JSON:
+            "source_string": "hello",
+            "regex": "[aeiouAEIOU]",
+            "replacement": "*"
+        Expected format:
+        {expected}
+        JSON:
+        """
 
-    Replace all digits in "abc123" with X
-    JSON:
-        "source_string": "abc123",
-        "regex": "[0-9]+",
-        "replacement": "X"
-    Example 2:
-    Request:
-    Replace all vowels in "hello"
-    JSON:
-        "source_string": "hello",
-        "regex": "[aeiouAEIOU]",
-        "replacement": "*"
-    Expected format:
-    {expected}
-    JSON:
-    """
     viz = GenerationVisualizer(enabled=visualize)
     viz.reset(prompt)
 
@@ -126,7 +148,6 @@ def extract_parameters(
     len_para =len(parametres)
     max_tokens = 15 + (len_para * 10)
     for _ in range(max_tokens):
-        llm_calls += 1
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
         needs_constraint = (
@@ -158,7 +179,6 @@ def extract_parameters(
     except json.JSONDecodeError:
         success = False
     viz.finish(current_json, success)
-    print(f"Total LLM calls: {llm_calls}")
     return result
 
 

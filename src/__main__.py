@@ -94,11 +94,11 @@ def main() -> None:
         )
     except FileNotFoundError:
         return
-    except json.JSONDecodeError as e:
-        return
-        print(
-            f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}"
-        )
+    # except json.JSONDecodeError as e:
+    #     return
+    #     print(
+    #         f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}"
+    #     )
     functions = {}
     INPUTS_FOLDER = "data/input/"
     try:
@@ -176,7 +176,7 @@ def main() -> None:
                 model,
                 choosen,
                 valid_json_chars,
-                id_to_token=id_to_token,
+                id_to_token,
                 visualize=True,
             )
             t2 = time.time()
@@ -190,8 +190,6 @@ def main() -> None:
             )
             results.append({"prompt": prompt, "error": str(e)})
             continue
-        print(f"choosen_function: {t1-start:.1f}")
-        print(f"extract_parameters: {t2-start:.1f}")
         if 'regex' in para:
             para = fix_regex(para, prompt)
         if 'replacement' in para:

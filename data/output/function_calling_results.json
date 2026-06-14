@@ -5,46 +5,46 @@
     },
     {
         "prompt": "What is the sum of 2 and 3?",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "What is the sum of 265 and 345?",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Greet shrek",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Greet john",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Reverse the string 'hello'",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Reverse the string 'world'",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "What is the square root of 16?",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Calculate the square root of 144",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     },
     {
         "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'",
-        "error": "local variable 'llm_calls' referenced before assignment"
+        "error": "name 'parametrs' is not defined"
     }
 ]

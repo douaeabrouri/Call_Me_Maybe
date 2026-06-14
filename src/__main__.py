@@ -80,7 +80,7 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
 
 
 def main() -> None:
-
+    torch.set_num_threads(8)
     model = Small_LLM_Model()
     try:
         data, _ = load_function_definitions("functions_definition.json")
@@ -94,11 +94,11 @@ def main() -> None:
         )
     except FileNotFoundError:
         return
-    # except json.JSONDecodeError as e:
-    #     return
-    #     print(
-    #         f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}"
-    #     )
+    except json.JSONDecodeError as e:
+        return
+        print(
+            f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}"
+        )
     functions = {}
     INPUTS_FOLDER = "data/input/"
     try:
@@ -129,12 +129,34 @@ def main() -> None:
     with open(path, "r") as file:
         vocab = json.load(file)
 
+    JSON_CHARS = set('{}[]",:0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\/*[]()^$?+')
+    
+    import re as re_module
+    import string
+    JSON_EXACT = {
+        '{', '}', '[', ']', '"', ':', ',', ' ',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        '.', '-', '+', 'e', 'E',  
+        'n', 'u', 'l',             
+        't', 'r', 'a',     
+        'f', 's',                 
+    }
+    
     valid_json_chars: set = set()
+
     for token_string, token_id in vocab.items():
-        clean = token_string.replace("Ġ", " ").replace("Ċ", "\n")
-        if any(
-            c in clean
-            for c in '{}[]",:0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\'
+        clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
+        stripped = clean.strip()
+        if stripped in JSON_EXACT:
+            valid_json_chars.add((clean, int(token_id)))
+    for token_string, token_id in vocab.items():
+        clean = token_string.replace('Ġ', ' ').replace('Ċ', '\n')
+        stripped = clean.strip()
+        if (
+            stripped and
+            len(stripped) <= 2 and
+            stripped.isascii() and
+            stripped.isalnum()
         ):
             valid_json_chars.add((clean, int(token_id)))
 

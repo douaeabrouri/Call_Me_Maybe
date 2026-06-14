@@ -9,23 +9,6 @@ import torch
 import json
 import sys
 
-
-def is_valid_json_prefix(s: str) -> bool:
-    s = s.strip()
-    if not s:
-        return True
-    if not s.startswith("{"):
-        return False
-    try:
-        json.loads(s)
-        return True
-    except json.JSONDecodeError as e:
-        msg = str(e)
-        if any(x in msg for x in ["Expecting", "Unterminated", "EOF", "end of data"]):
-            return True
-        return False
-
-
 def get_numbers_from_prompt(prompt: str) -> set:
     import re as re_module
 
@@ -38,6 +21,7 @@ def is_garbage_prompt(prompt: str) -> bool:
     words = prompt.split()
     real_words = [w for w in words if re.match(r"^[a-zA-Z]{2,}$", w)]
     return len(real_words) < 2
+
 
 
 def choose_function(
@@ -64,6 +48,20 @@ def choose_function(
                 return name
     return "NO_MATCH"
 
+def is_valid_json_prefix(s: str) -> bool:
+    s = s.strip()
+    if not s:
+        return True
+    if not s.startswith("{"):
+        return False
+    try:
+        json.loads(s)
+        return True
+    except json.JSONDecodeError as e:
+        msg = str(e)
+        if any(x in msg for x in ["Expecting", "Unterminated", "EOF", "end of data"]):
+            return True
+        return False
 
 def extract_parameters(
     prompt: str,
@@ -78,6 +76,9 @@ def extract_parameters(
         {k: v["type"] for k, v in parametres.items()}, indent=2
     )
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
+    # expected_chars = len(expected)
+    # max_tokens = max(8, expected_chars // 2)
+    # print(f"max_tokens: {max_tokens}")
 
     if 'regex' not in parametres:
         full_prompt = f"""
@@ -86,22 +87,17 @@ def extract_parameters(
         {choosen['name']}
         Description:
         {choosen['description']}
-        Expected parameters:
-        {params_with_types}
         User request:
         {prompt}
         Rules:
         - Extract ONLY parameter values
         - No explanations, no extra keys
-        - Extract values DIRECTLY from the user request
-        - Return the values that would be passed to the function call.
         Expected format:
         {expected}
         JSON:
         """
     else:
         full_prompt = f"""
-        You are a parameter extractor.
         Function:
         {choosen['name']}
         Description:
@@ -115,18 +111,14 @@ def extract_parameters(
         - No explanations, no extra keys
         - Extract values DIRECTLY from the user request
         - regex must describe WHAT should be replaced
-        - Return the values that would be passed to the function call.
         AND for the regex and replacement:
         Example 1:
-        Request:
-    
         Replace all digits in "abc123" with X
         JSON:
             "source_string": "abc123",
             "regex": "[0-9]+",
             "replacement": "X"
         Example 2:
-        Request:
         Replace all vowels in "hello"
         JSON:
             "source_string": "hello",
@@ -145,7 +137,7 @@ def extract_parameters(
     current_json = ""
     blocked = 0
     allowed = 0
-    len_para =len(parametres)
+    len_para = len(parametres)
     max_tokens = 15 + (len_para * 10)
     for _ in range(max_tokens):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
@@ -172,6 +164,7 @@ def extract_parameters(
         viz.update(current_json, token, blocked, allowed)
         if current_json.strip().endswith("}"):
             break
+        
     result = {}
     try:
         result = json.loads(current_json.strip())

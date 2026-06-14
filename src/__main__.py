@@ -1,8 +1,4 @@
-from src.decoder.token_filter import (
-    is_valid_regex,
-    look_like_just_copy,
-    is_valid_replacement,
-)
+
 from src.llm.generator import (
     extract_parameters,
     choose_function,
@@ -89,17 +85,16 @@ def main() -> None:
                 f"{Colors.RED.value}ERROR:{Colors.RESET.value} No function definitions found in 'functions_definition.json'"
             )
             return
+    except FileNotFoundError:
         print(
             f"{Colors.RED.value}ERROR:{Colors.RESET.value} Functions_definition.json not found"
         )
-    except FileNotFoundError:
         return
     except json.JSONDecodeError as e:
-        return
         print(
             f"{Colors.RED.value}ERROR:{Colors.RESET.value} functions_definition.json is malformed: {e}"
         )
-    functions = {}
+        return
     INPUTS_FOLDER = "data/input/"
     try:
         with open(
@@ -129,9 +124,7 @@ def main() -> None:
     with open(path, "r") as file:
         vocab = json.load(file)
 
-    JSON_CHARS = set('{}[]",:0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-_+ \\/*[]()^$?+')
     
-    import re as re_module
     import string
     JSON_EXACT = {
         '{', '}', '[', ']', '"', ':', ',', ' ',
@@ -162,6 +155,7 @@ def main() -> None:
 
     prompts: List[str] = [f["prompt"] for f in folder]
     results: List[dict] = []
+    id_to_token: dict = {int(v): k for k, v in vocab.items()}
     for i, prompt in enumerate(prompts):
         if not prompt.strip():
             print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} EMPTY PROMPT")
@@ -192,7 +186,6 @@ def main() -> None:
             )
             continue
         try:
-            id_to_token: dict = {int(v): k for k, v in vocab.items()}
             para = extract_parameters(
                 prompt,
                 model,
@@ -201,11 +194,8 @@ def main() -> None:
                 id_to_token,
                 visualize=True,
             )
-            t2 = time.time()
-            if not para:
-                print(
-                    f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No parameters extracted for prompt '{prompt}'"
-                )
+            if para is None:
+                para = {}
         except Exception as e:
             print(
                 f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to extract parameters for prompt '{prompt}': {e}"
@@ -231,6 +221,5 @@ def main() -> None:
         print(
             f"{Colors.RED.value}ERROR:{Colors.RESET.value} Faild to write output: {e}"
         )
-
 
 main()

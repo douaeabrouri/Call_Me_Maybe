@@ -9,11 +9,6 @@ import torch
 import json
 import sys
 
-def get_numbers_from_prompt(prompt: str) -> set:
-    import re as re_module
-
-    return set(re_module.findall(r"\d+", prompt))
-
 
 def is_garbage_prompt(prompt: str) -> bool:
     import re
@@ -21,8 +16,6 @@ def is_garbage_prompt(prompt: str) -> bool:
     words = prompt.split()
     real_words = [w for w in words if re.match(r"^[a-zA-Z]{2,}$", w)]
     return len(real_words) < 2
-
-
 
 def choose_function(
     prompt: str, model, functions: List[FunctionDefinition], vocab
@@ -33,7 +26,6 @@ def choose_function(
 
     allowed_names: List[str] = [f["name"] for f in functions]
     full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
-
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
 
@@ -46,6 +38,7 @@ def choose_function(
         for name in allowed_names:
             if name in decoded_text:
                 return name
+
     return "NO_MATCH"
 
 def is_valid_json_prefix(s: str) -> bool:
@@ -76,9 +69,6 @@ def extract_parameters(
         {k: v["type"] for k, v in parametres.items()}, indent=2
     )
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
-    # expected_chars = len(expected)
-    # max_tokens = max(8, expected_chars // 2)
-    # print(f"max_tokens: {max_tokens}")
 
     if 'regex' not in parametres:
         full_prompt = f"""
@@ -138,42 +128,57 @@ def extract_parameters(
     blocked = 0
     allowed = 0
     len_para = len(parametres)
-    max_tokens = 15 + (len_para * 10)
+    if 'regex' in parametres:
+        max_tokens = 30
+    else:
+        max_tokens = 10 + (len_para * 5)
+
+    state_cache: dict = {} 
+
     for _ in range(max_tokens):
         logits = model.get_logits_from_input_ids(input_id + generate_ids)
         logits_tensor = torch.tensor(logits)
+
         needs_constraint = (
-            current_json == ""
-            or current_json.rstrip().endswith("{")
-            or current_json.rstrip().endswith(",")
-            or current_json.rstrip().endswith(":")
-            or current_json.rstrip().endswith(": ")
+           current_json == "" or
+           current_json.rstrip().endswith("{") or
+           current_json.rstrip().endswith(",") or
+           current_json.rstrip().endswith(":") or
+           current_json.rstrip().endswith(": ")
         )
+
         if needs_constraint:
-            for token_string, token_id in valid_json_chars:
-                token = current_json + token_string
-                if not is_valid_json_prefix(token):
-                    logits_tensor[token_id] = float("-inf")
-                    blocked += 1
-                else:
-                    allowed += 1
+            state = current_json.rstrip()
+        
+            if state not in state_cache:
+                valid_ids: set = set()
+                for token_string, token_id in valid_json_chars:
+                    test = state + token_string
+                    if is_valid_json_prefix(test):
+                       valid_ids.add(token_id)
+                       allowed += 1
+                    else:
+                       blocked += 1
+                state_cache[state] = valid_ids
+            valid_set = state_cache[state]
+            for _, token_id in valid_json_chars:
+                if token_id not in valid_set:
+                   logits_tensor[token_id] = float('-inf')
+
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
-        token = id_to_token.get(next_token_id, "").replace("Ġ", " ").replace("Ċ", "\n")
+        token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
         current_json += token
         viz.update(current_json, token, blocked, allowed)
-        if current_json.strip().endswith("}"):
+        if current_json.strip().endswith('}'):
             break
-        
+
     result = {}
     try:
         result = json.loads(current_json.strip())
-        success: bool = True
     except json.JSONDecodeError:
-        success = False
-    viz.finish(current_json, success)
+        result = {}
     return result
-
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
     try:

@@ -76,7 +76,6 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
 
 
 def main() -> None:
-    torch.set_num_threads(8)
     model = Small_LLM_Model()
     try:
         data, _ = load_function_definitions("functions_definition.json")
@@ -100,8 +99,6 @@ def main() -> None:
         with open(
             Path(INPUTS_FOLDER + "function_calling_tests.json"), "r", encoding=("utf-8")
         ) as f:
-            import json
-
             folder = json.load(f)
     except FileNotFoundError:
         print(
@@ -156,21 +153,24 @@ def main() -> None:
     prompts: List[str] = [f["prompt"] for f in folder]
     results: List[dict] = []
     id_to_token: dict = {int(v): k for k, v in vocab.items()}
+    ALL_JSON_TOKEN_IDS = {
+        token_id
+        for _, token_id in valid_json_chars
+    }
     for i, prompt in enumerate(prompts):
         if not prompt.strip():
             print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} EMPTY PROMPT")
             results.append({"prompt": prompt, "error": "Empty prompt"})
             continue
         try:
-            start = time.time()
             func = choose_function(prompt, model, data, vocab)
-            if func == "NO_MATCH" or func is None:
-                print(
-                    f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'"
-                )
-                results.append({"prompt": prompt, "error": f"No matching function'"})
+            if func == "NO_MATCH":
+                # print(
+                #     f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'"
+                # )
+                # results.append({"prompt": prompt, "error": f"No matching function'"})
                 continue
-            t1 = time.time()
+
             choosen = next((f for f in data if f["name"] == func), None)
             if choosen is None:
                 results.append(
@@ -178,6 +178,7 @@ def main() -> None:
                 )
                 continue
         except Exception as e:
+            print(e)
             print(
                 f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to choose function for prompt '{prompt}': {e}"
             )
@@ -185,6 +186,7 @@ def main() -> None:
                 {"prompt": prompt, "error": f"Failed to choosen function: {e}"}
             )
             continue
+        
         try:
             para = extract_parameters(
                 prompt,
@@ -192,10 +194,13 @@ def main() -> None:
                 choosen,
                 valid_json_chars,
                 id_to_token,
+                ALL_JSON_TOKEN_IDS,
                 visualize=True,
             )
+
             if para is None:
                 para = {}
+
         except Exception as e:
             print(
                 f"{Colors.RED.value}ERROR:{Colors.RESET.value} Failed to extract parameters for prompt '{prompt}': {e}"
@@ -206,6 +211,7 @@ def main() -> None:
             para = fix_regex(para, prompt)
         if 'replacement' in para:
             para = fix_replacement(para, prompt)
+    
         para = cast_parameters(para, choosen)
         if not validate_parameters(para, choosen):
             print(
@@ -221,5 +227,4 @@ def main() -> None:
         print(
             f"{Colors.RED.value}ERROR:{Colors.RESET.value} Faild to write output: {e}"
         )
-
 main()

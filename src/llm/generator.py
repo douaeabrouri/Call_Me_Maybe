@@ -62,13 +62,15 @@ def extract_parameters(
     choosen: dict,
     valid_json_chars: set,
     id_to_token,
+    ALL_JSON_TOKEN_IDS,
     visualize: bool = False,
 ) -> dict:
+
     parametres = choosen["parameters"]
-    params_with_types = json.dumps(
-        {k: v["type"] for k, v in parametres.items()}, indent=2
-    )
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
+    params_with_types = json.dumps(
+       {k: v["type"] for k, v in parametres.items()}, indent=2
+    )
 
     if 'regex' not in parametres:
         full_prompt = f"""
@@ -128,28 +130,29 @@ def extract_parameters(
     blocked = 0
     allowed = 0
     len_para = len(parametres)
+    max_tokens =  10 + (len_para * 5)
     if 'regex' in parametres:
-        max_tokens = 30
-    else:
-        max_tokens = 10 + (len_para * 5)
+        max_tokens = 35
 
     state_cache: dict = {} 
-
     for _ in range(max_tokens):
-        logits = model.get_logits_from_input_ids(input_id + generate_ids)
-        logits_tensor = torch.tensor(logits)
+        logits = model.get_logits_from_input_ids(
+            input_id + generate_ids
+        )
+        
+        if isinstance(logits, torch.Tensor):
+            logits_tensor = logits
+        else:
+            logits_tensor = torch.tensor(logits)
 
         needs_constraint = (
            current_json == "" or
            current_json.rstrip().endswith("{") or
            current_json.rstrip().endswith(",") or
-           current_json.rstrip().endswith(":") or
-           current_json.rstrip().endswith(": ")
+           current_json.rstrip().endswith(":")
         )
-
         if needs_constraint:
             state = current_json.rstrip()
-        
             if state not in state_cache:
                 valid_ids: set = set()
                 for token_string, token_id in valid_json_chars:
@@ -161,10 +164,9 @@ def extract_parameters(
                        blocked += 1
                 state_cache[state] = valid_ids
             valid_set = state_cache[state]
-            for _, token_id in valid_json_chars:
-                if token_id not in valid_set:
-                   logits_tensor[token_id] = float('-inf')
-
+            invalid_ids = ALL_JSON_TOKEN_IDS - valid_set
+            for token_id in invalid_ids:
+                logits_tensor[token_id] = float("-inf")
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
         token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
@@ -202,6 +204,7 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
         print(f"Validation error: {e}")
         return False
     return True
+
 
 
 def cast_parameters(params: dict, function_def: dict) -> dict:

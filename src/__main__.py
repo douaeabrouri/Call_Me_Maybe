@@ -163,12 +163,12 @@ def main() -> None:
             results.append({"prompt": prompt, "error": "Empty prompt"})
             continue
         try:
-            func = choose_function(prompt, model, data, vocab)
+            func = choose_function(prompt, model, data)
             if func == "NO_MATCH":
-                # print(
-                #     f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'"
-                # )
-                # results.append({"prompt": prompt, "error": f"No matching function'"})
+                print(
+                    f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} No function chosen for prompt '{prompt}'"
+                )
+                results.append({"prompt": prompt, "error": f"No matching function'"})
                 continue
 
             choosen = next((f for f in data if f["name"] == func), None)

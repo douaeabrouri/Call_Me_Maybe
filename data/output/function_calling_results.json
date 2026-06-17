@@ -1,10 +1,11 @@
 [
     {
-        "prompt": "What is the sum of 2 and 3?",
-        "name": "fn_add_numbers",
+        "prompt": "replace vowels in hello with *",
+        "name": "fn_substitute_string_with_regex",
         "parameters": {
-            "a": 2,
-            "b": 3
+            "source_string": "hello",
+            "regex": "aeiouAEIOU",
+            "replacement": "*"
         }
     },
     {

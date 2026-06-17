@@ -18,7 +18,7 @@ def is_garbage_prompt(prompt: str) -> bool:
     return len(real_words) < 2
 
 def choose_function(
-    prompt: str, model, functions: List[FunctionDefinition], vocab
+    prompt: str, model: Small_LLM_Model, functions: List[FunctionDefinition]
 ) -> str:
 
     if is_garbage_prompt(prompt):
@@ -58,7 +58,7 @@ def is_valid_json_prefix(s: str) -> bool:
 
 def extract_parameters(
     prompt: str,
-    model,
+    model: Small_LLM_Model,
     choosen: dict,
     valid_json_chars: set,
     id_to_token,
@@ -130,7 +130,7 @@ def extract_parameters(
     blocked = 0
     allowed = 0
     len_para = len(parametres)
-    max_tokens =  10 + (len_para * 5)
+    max_tokens =  15 + (len_para * 8)
     if 'regex' in parametres:
         max_tokens = 35
 
@@ -218,7 +218,16 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
             if expected_type == "string":
                 params[name] = str(params[name])
             elif expected_type == "number":
-                params[name] = int(float(params[name]))
+                value = params[name]
+                if isinstance(value, str):
+                    if '.' not in value and 'e' not in value.lower():
+                        params[name] = int(value)
+                    else:
+                        params[name] = float(value)
+                elif isinstance(value, int):
+                    params[name] = value
+                else:
+                    params[name] = value
             elif expected_type == "boolean":
                 if isinstance(params[name], str):
                     params[name] = params[name].lower() == "true"

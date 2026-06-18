@@ -1,4 +1,3 @@
-from cmd import PROMPT
 from typing import Any
 from pydantic import BaseModel
 

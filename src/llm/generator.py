@@ -1,13 +1,9 @@
-from torch.cuda.memory import get_per_process_memory_fraction
 from src.models.function_definition import FunctionDefinition
-from src.utils.file_loader import load_function_definitions
 from llm_sdk.llm_sdk import Small_LLM_Model
-from torch.cuda import _get_generator
 from typing import List
 from src.utils.visualizer import GenerationVisualizer
 import torch
 import json
-import sys
 
 
 def is_garbage_prompt(prompt: str) -> bool:
@@ -17,6 +13,7 @@ def is_garbage_prompt(prompt: str) -> bool:
     real_words = [w for w in words if re.match(r"^[a-zA-Z]{2,}$", w)]
     return len(real_words) < 2
 
+
 def choose_function(
     prompt: str, model: Small_LLM_Model, functions: List[FunctionDefinition]
 ) -> str:
@@ -25,7 +22,8 @@ def choose_function(
         return "NO_MATCH"
 
     allowed_names: List[str] = [f["name"] for f in functions]
-    full_prompt = f"Functions: {allowed_names}\nRequest: '{prompt}'\nFunction name:"
+    full_prompt = f"Functions: {allowed_names}\nRequest: "
+    f"'{prompt}'\nFunction name:"
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
 
@@ -41,6 +39,7 @@ def choose_function(
 
     return "NO_MATCH"
 
+
 def is_valid_json_prefix(s: str) -> bool:
     s = s.strip()
     if not s:
@@ -52,9 +51,11 @@ def is_valid_json_prefix(s: str) -> bool:
         return True
     except json.JSONDecodeError as e:
         msg = str(e)
-        if any(x in msg for x in ["Expecting", "Unterminated", "EOF", "end of data"]):
+        keywords = ["Expecting", "Unterminated", "EOF", "end of data"]
+        if any(x in msg for x in keywords):
             return True
         return False
+
 
 def extract_parameters(
     prompt: str,
@@ -69,16 +70,16 @@ def extract_parameters(
     parametres = choosen["parameters"]
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
     params_with_types = json.dumps(
-       {k: v["type"] for k, v in parametres.items()}, indent=2
+        {k: v["type"] for k, v in parametres.items()}, indent=2
     )
 
-    if 'regex' not in parametres:
+    if "regex" not in parametres:
         full_prompt = f"""
         You are a parameter extractor.
         Function:
-        {choosen['name']}
+        {choosen["name"]}
         Description:
-        {choosen['description']}
+        {choosen["description"]}
         User request:
         {prompt}
         Rules:
@@ -91,9 +92,9 @@ def extract_parameters(
     else:
         full_prompt = f"""
         Function:
-        {choosen['name']}
+        {choosen["name"]}
         Description:
-        {choosen['description']}
+        {choosen["description"]}
         Expected parameters:
         {params_with_types}
         User request:
@@ -130,26 +131,24 @@ def extract_parameters(
     blocked = 0
     allowed = 0
     len_para = len(parametres)
-    max_tokens =  15 + (len_para * 8)
-    if 'regex' in parametres:
+    max_tokens = 15 + (len_para * 8)
+    if "regex" in parametres:
         max_tokens = 35
 
-    state_cache: dict = {} 
+    state_cache: dict = {}
     for _ in range(max_tokens):
-        logits = model.get_logits_from_input_ids(
-            input_id + generate_ids
-        )
-        
+        logits = model.get_logits_from_input_ids(input_id + generate_ids)
+
         if isinstance(logits, torch.Tensor):
             logits_tensor = logits
         else:
             logits_tensor = torch.tensor(logits)
 
         needs_constraint = (
-           current_json == "" or
-           current_json.rstrip().endswith("{") or
-           current_json.rstrip().endswith(",") or
-           current_json.rstrip().endswith(":")
+            current_json == ""
+            or current_json.rstrip().endswith("{")
+            or current_json.rstrip().endswith(",")
+            or current_json.rstrip().endswith(":")
         )
         if needs_constraint:
             state = current_json.rstrip()
@@ -158,10 +157,10 @@ def extract_parameters(
                 for token_string, token_id in valid_json_chars:
                     test = state + token_string
                     if is_valid_json_prefix(test):
-                       valid_ids.add(token_id)
-                       allowed += 1
+                        valid_ids.add(token_id)
+                        allowed += 1
                     else:
-                       blocked += 1
+                        blocked += 1
                 state_cache[state] = valid_ids
             valid_set = state_cache[state]
             invalid_ids = ALL_JSON_TOKEN_IDS - valid_set
@@ -169,10 +168,12 @@ def extract_parameters(
                 logits_tensor[token_id] = float("-inf")
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
-        token = id_to_token.get(next_token_id, '').replace('Ġ', ' ').replace('Ċ', '\n')
+        token = (id_to_token.get(next_token_id, "")
+                 .replace("Ġ", " ")
+                 .replace("Ċ ", "\n"))
         current_json += token
         viz.update(current_json, token, blocked, allowed)
-        if current_json.strip().endswith('}'):
+        if current_json.strip().endswith("}"):
             break
 
     result = {}
@@ -181,6 +182,7 @@ def extract_parameters(
     except json.JSONDecodeError:
         result = {}
     return result
+
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
     try:
@@ -199,12 +201,12 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
                 if not isinstance(parameters[name], bool):
                     return False
             else:
-                raise ValueError(f"Unsupported parameter type: {expected_type}")
+                raise ValueError("Unsupported parameter type: "
+                                 f"{expected_type}")
     except ValueError as e:
         print(f"Validation error: {e}")
         return False
     return True
-
 
 
 def cast_parameters(params: dict, function_def: dict) -> dict:
@@ -220,7 +222,7 @@ def cast_parameters(params: dict, function_def: dict) -> dict:
             elif expected_type == "number":
                 value = params[name]
                 if isinstance(value, str):
-                    if '.' not in value and 'e' not in value.lower():
+                    if "." not in value and "e" not in value.lower():
                         params[name] = int(value)
                     else:
                         params[name] = float(value)

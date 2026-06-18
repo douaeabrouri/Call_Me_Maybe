@@ -1,10 +1,8 @@
 import sys
-from typing import Optional
 from src.enums.Colors import Colors
 
 
 class GenerationVisualizer:
-
     def __init__(self, enabled: bool = True) -> None:
         self.enabled = enabled
         self.step = 0
@@ -19,7 +17,8 @@ class GenerationVisualizer:
             return
         print(f"\n{'─' * 60}")
         print(
-            f"  {Colors.YELLOW.value}Generating for:{Colors.RESET.value} '{prompt[:50]}...'"
+            f"  {Colors.YELLOW.value}Generating for:"
+            f"{Colors.RESET.value} '{prompt[:50]}...'"
         )
         print(f"{'─' * 60}")
 

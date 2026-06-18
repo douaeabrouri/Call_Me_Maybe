@@ -21,9 +21,14 @@ def choose_function(
     if is_garbage_prompt(prompt):
         return "NO_MATCH"
 
-    allowed_names: List[str] = [f["name"] for f in functions]
-    full_prompt = f"Functions: {allowed_names}\nRequest: "
-    f"'{prompt}'\nFunction name:"
+    allowed_names: List[str] = [
+        f.name if isinstance(f, FunctionDefinition) else f["name"]
+        for f in functions
+    ]
+    full_prompt = (
+        f"Functions: {allowed_names}\nRequest: "
+        f"'{prompt}'\nFunction name:"
+    )
     input_ids: List[int] = model.encode(full_prompt)[0].tolist()
     generate_ids: list[int] = []
 
@@ -62,8 +67,8 @@ def extract_parameters(
     model: Small_LLM_Model,
     choosen: dict,
     valid_json_chars: set,
-    id_to_token,
-    ALL_JSON_TOKEN_IDS,
+    id_to_token: dict,
+    ALL_JSON_TOKEN_IDS: set[int],
     visualize: bool = False,
 ) -> dict:
 
@@ -168,9 +173,11 @@ def extract_parameters(
                 logits_tensor[token_id] = float("-inf")
         next_token_id = int(torch.argmax(logits_tensor).item())
         generate_ids.append(next_token_id)
-        token = (id_to_token.get(next_token_id, "")
-                 .replace("Ġ", " ")
-                 .replace("Ċ ", "\n"))
+        token = (
+            id_to_token.get(next_token_id, "")
+            .replace("Ġ", " ")
+            .replace("Ċ", "\n")
+        )
         current_json += token
         viz.update(current_json, token, blocked, allowed)
         if current_json.strip().endswith("}"):
@@ -179,6 +186,7 @@ def extract_parameters(
     result = {}
     try:
         result = json.loads(current_json.strip())
+        # break
     except json.JSONDecodeError:
         result = {}
     return result

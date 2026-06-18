@@ -179,7 +179,10 @@ def main() -> None:
     prompts: List[str] = [f["prompt"] for f in folder]
     results: List[dict] = []
     id_to_token: dict = {int(v): k for k, v in vocab.items()}
-    ALL_JSON_TOKEN_IDS = {token_id for _, token_id in valid_json_chars}
+    ALL_JSON_TOKEN_IDS: set[int] = {
+        token_id
+        for _, token_id in valid_json_chars
+    }
     for i, prompt in enumerate(prompts):
         if not prompt.strip():
             print(f"{Colors.YELLOW.value}WARNING:"
@@ -204,7 +207,6 @@ def main() -> None:
                 )
                 continue
         except Exception as e:
-            print(e)
             print(
                 f"{Colors.RED.value}ERROR:{Colors.RESET.value} "
                 f"Failed to choose function for prompt '{prompt}': {e}"

@@ -3,11 +3,11 @@ import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    PreTrainedTokenizer,
     PreTrainedModel,
     logging,
 )
 from huggingface_hub import hf_hub_download
+from typing import Any
 
 logging.set_verbosity_error()  # keep the console clean
 
@@ -56,8 +56,10 @@ class Small_LLM_Model:
                      else torch.float32)
         self._dtype = dtype
 
-        self._tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-            model_name, trust_remote_code=trust_remote_code
+        self._tokenizer: Any = (
+            AutoTokenizer.from_pretrained(
+                model_name, trust_remote_code=trust_remote_code
+            )
         )
         if self._tokenizer.pad_token_id is None:
             # ensure we have a pad token to keep batch helpers happy
@@ -69,9 +71,9 @@ class Small_LLM_Model:
             device_map="auto" if self._device == "cuda" else None,
             trust_remote_code=trust_remote_code,
         )
-        self._model.to(self._device)
-        self._model.eval()
 
+        self._model = self._model.to(self._device)  # type: ignore
+        self._model.eval()
         # switch to inference-only mode
         for p in self._model.parameters():
             p.requires_grad = False
@@ -89,7 +91,8 @@ class Small_LLM_Model:
         """Inverse of :py:meth:`encode`. Removes special tokens."""
         if isinstance(ids, torch.Tensor):
             ids = ids.tolist()
-        return self._tokenizer.decode(ids, skip_special_tokens=True)
+        result = self._tokenizer.decode(ids, skip_special_tokens=True)
+        return result if isinstance(result, str) else result[0]
 
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         """

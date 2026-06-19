@@ -22,7 +22,7 @@ def choose_function(
         return "NO_MATCH"
 
     allowed_names: List[str] = [
-        f.name if isinstance(f, FunctionDefinition) else f["name"]
+        FunctionDefinition.model_validate(f).name
         for f in functions
     ]
     full_prompt = (
@@ -136,7 +136,7 @@ def extract_parameters(
     blocked = 0
     allowed = 0
     len_para = len(parametres)
-    max_tokens = 15 + (len_para * 8)
+    max_tokens = 13 + (len_para * 8)
     if "regex" in parametres:
         max_tokens = 35
 

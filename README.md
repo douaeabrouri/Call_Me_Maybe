@@ -1,6 +1,6 @@
 # *This project has been created as part of the 42 curriculum by doabrour.*
 
-# 📞 Call Me Maybe
+#  Call Me Maybe
 
 A lightweight function-calling system powered by **Qwen3-0.6B** and **constrained decoding**.
 
@@ -272,19 +272,7 @@ Solution:
 
 Additional prompting and post-processing logic were introduced.
 
----
 
-### 3. Function Misclassification
-
-Problem:
-
-The model occasionally selected incorrect functions.
-
-Solution:
-
-Improved function descriptions and prompt structure to provide stronger semantic guidance.
-
----
 
 ##  Testing Strategy
 

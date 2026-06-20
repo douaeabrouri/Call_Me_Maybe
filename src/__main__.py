@@ -14,6 +14,22 @@ import json
 
 
 def fix_regex(parameters: dict, prompt: str) -> dict:
+    """Corrects a misextracted regex pattern using the original prompt.
+
+    If the extracted regex value is suspiciously long and matches the
+    source string exactly, attempts to recover the intended pattern by
+    parsing the prompt for a word replacement instruction.
+
+    Args:
+        parameters (dict): The extracted parameter values, potentially
+            containing a "regex" key to fix.
+        prompt (str): The original user input used to recover the
+            intended regex pattern.
+
+    Returns:
+        dict: The parameters dict with the corrected "regex" value if
+            a fix was applicable, otherwise unchanged.
+    """
     import re
 
     if "regex" not in parameters:
@@ -38,6 +54,23 @@ def fix_regex(parameters: dict, prompt: str) -> dict:
 
 
 def fix_replacement(parameters: dict, prompt: str) -> dict:
+    """Normalizes a misextracted replacement value to its intended character.
+
+    Handles cases where the model extracts a word description of a
+    character (e.g., "asterisk") instead of the character itself (e.g.,
+    "*"). Falls back to parsing the prompt directly if the value is not
+    found in the known word-to-character mapping.
+
+    Args:
+        parameters (dict): The extracted parameter values, potentially
+            containing a "replacement" key to normalize.
+        prompt (str): The original user input used as a fallback source
+            for the intended replacement value.
+
+    Returns:
+        dict: The parameters dict with the normalized "replacement" value
+            if a fix was applicable, otherwise unchanged.
+    """
     import re
 
     if "replacement" not in parameters:
@@ -73,6 +106,17 @@ def fix_replacement(parameters: dict, prompt: str) -> dict:
 
 
 def main() -> None:
+    """Runs the full LLM function-calling pipeline end to end.
+
+    Loads the language model, function definitions, and test prompts from
+    disk. For each prompt, selects the most appropriate function, extracts
+    and validates its parameters, applies post-processing fixes, and
+    assembles the final function call. Writes all results to a JSON output
+    file. Prints colored warnings and errors to the terminal throughout.
+
+    Returns:
+        None
+    """
     model = Small_LLM_Model()
     try:
         data, _ = load_function_definitions("functions_definition.json")
@@ -175,8 +219,20 @@ def main() -> None:
             and stripped.isalnum()
         ):
             valid_json_chars.add((clean, int(token_id)))
-
-    prompts: List[str] = [f["prompt"] for f in folder]
+    prompts: List[str] = []
+    for idx, f in enumerate(folder):
+        if "prompt" not in f:
+            print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} "
+                  f"Item {idx} missing key 'prompt', "
+                  f"got keys: {list(f.keys())}")
+            continue
+        value = f["prompt"]
+        if not isinstance(value, str):
+            print(f"{Colors.YELLOW.value}WARNING:{Colors.RESET.value} "
+                  f"Item {idx} 'prompt' should be a string, got "
+                  f"{type(value).__name__!r}: {value!r}")
+            continue
+        prompts.append(value)
     results: List[dict] = []
     id_to_token: dict = {int(v): k for k, v in vocab.items()}
     ALL_JSON_TOKEN_IDS: set[int] = {
@@ -189,6 +245,7 @@ def main() -> None:
                   f"{Colors.RESET.value} EMPTY PROMPT")
             results.append({"prompt": prompt, "error": "Empty prompt"})
             continue
+
         try:
             func = choose_function(prompt, model, data)
             if func == "NO_MATCH":

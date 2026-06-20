@@ -6,7 +6,43 @@ import torch
 import json
 
 
+def _safe_name(f: FunctionDefinition | dict) -> str | None:
+    """Safely extracts the name from a FunctionDefinition or a raw dict.
+
+    Validates the input against the FunctionDefinition model if it is a
+    dict, or reads the name directly if it is already a FunctionDefinition
+    instance. Returns None if extraction fails for any reason.
+
+    Args:
+        f (FunctionDefinition | dict): A FunctionDefinition instance or a
+            raw dictionary representing a function definition.
+
+    Returns:
+        str | None: The function name if valid, otherwise None.
+    """
+    try:
+        if isinstance(f, FunctionDefinition):
+            name = f.name
+        else:
+            name = FunctionDefinition.model_validate(f).name
+        return name if isinstance(name, str) else None
+    except Exception:
+        return None
+
+
 def is_garbage_prompt(prompt: str) -> bool:
+    """Determines whether a prompt is too malformed to be processed.
+
+    A prompt is considered garbage if it contains fewer than two real
+    alphabetic words (i.e., words composed solely of ASCII letters with
+    a minimum length of two characters).
+
+    Args:
+        prompt (str): The raw user input string to evaluate.
+
+    Returns:
+        bool: True if the prompt is considered garbage, False otherwise.
+    """
     import re
 
     words = prompt.split()
@@ -17,13 +53,28 @@ def is_garbage_prompt(prompt: str) -> bool:
 def choose_function(
     prompt: str, model: Small_LLM_Model, functions: List[FunctionDefinition]
 ) -> str:
+    """Selects the most appropriate function name for a given user prompt.
 
+    Uses the language model to greedily decode a function name from the
+    list of allowed function names. Returns "NO_MATCH" if the prompt is
+    garbage or if no matching function name is decoded within the token
+    limit.
+
+    Args:
+        prompt (str): The user input describing the desired action.
+        model (Small_LLM_Model): The language model used for token generation.
+        functions (List[FunctionDefinition]): The list of available function
+            definitions to match against.
+
+    Returns:
+        str: The matched function name, or "NO_MATCH" if no match is found.
+    """
     if is_garbage_prompt(prompt):
         return "NO_MATCH"
 
     allowed_names: List[str] = [
-        FunctionDefinition.model_validate(f).name
-        for f in functions
+        name for f in functions
+        if (name := _safe_name(f)) is not None
     ]
     full_prompt = (
         f"Functions: {allowed_names}\nRequest: "
@@ -46,6 +97,19 @@ def choose_function(
 
 
 def is_valid_json_prefix(s: str) -> bool:
+    """Checks whether a string is a valid or plausibly incomplete JSON object.
+
+    Used during constrained decoding to determine if a partially generated
+    string could still lead to a valid JSON object. Accepts empty strings
+    and incomplete-but-structurally-sound JSON fragments.
+
+    Args:
+        s (str): The string to evaluate as a JSON prefix.
+
+    Returns:
+        bool: True if the string is empty, a valid JSON object, or a
+            recoverable incomplete JSON fragment. False otherwise.
+    """
     s = s.strip()
     if not s:
         return True
@@ -71,7 +135,32 @@ def extract_parameters(
     ALL_JSON_TOKEN_IDS: set[int],
     visualize: bool = False,
 ) -> dict:
+    """Extracts structured parameters from a
+    user prompt using constrained decoding.
 
+    Builds a prompt tailored to the chosen function's signature, then
+    generates a JSON object token by token. At each step, invalid JSON
+    tokens are masked to enforce structural validity. Supports an optional
+    visualization of the generation process.
+
+    Args:
+        prompt (str): The raw user input to extract parameter values from.
+        model (Small_LLM_Model): The language model used for token generation.
+        choosen (dict): The selected function definition dict containing
+            "name", "description", and "parameters".
+        valid_json_chars (set): A set of (token_string, token_id) pairs
+            representing all JSON-relevant tokens in the vocabulary.
+        id_to_token (dict): A mapping from token IDs to their string
+            representations.
+        ALL_JSON_TOKEN_IDS (set[int]): The full set of JSON token IDs used
+            to compute the invalid token mask.
+        visualize (bool): Whether to display a live visualization of the
+            generation process. Defaults to False.
+
+    Returns:
+        dict: The extracted parameters as a dictionary. Returns an empty
+            dict if JSON parsing fails.
+    """
     parametres = choosen["parameters"]
     expected = json.dumps({k: v["type"] for k, v in parametres.items()})
     params_with_types = json.dumps(
@@ -193,6 +282,20 @@ def extract_parameters(
 
 
 def validate_parameters(parameters: dict, function_definition: dict) -> bool:
+    """Validates extracted parameters against a function definition's schema.
+
+    Checks that all expected parameters are present and that each value
+    matches its declared type ("string", "number", or "boolean").
+
+    Args:
+        parameters (dict): The extracted parameter values to validate.
+        function_definition (dict): The function definition dict containing
+            a "parameters" key with name, type, and description per param.
+
+    Returns:
+        bool: True if all parameters are present and correctly typed,
+            False otherwise.
+    """
     try:
         expected_params = function_definition["parameters"]
         for name, info in expected_params.items():
@@ -218,7 +321,26 @@ def validate_parameters(parameters: dict, function_definition: dict) -> bool:
 
 
 def cast_parameters(params: dict, function_def: dict) -> dict:
+    """Casts extracted parameter values to their declared types.
 
+    Iterates over expected parameters and attempts to
+    coerce each value
+    to the correct Python type based on the function definition
+    schema.
+    Logs a warning for any value that cannot be cast,
+    leaving it unchanged.
+
+    Args:
+        params (dict): The raw extracted parameter values.
+        function_def (dict): The function definition dict c
+        ontaining
+            a "parameters" key with type info per parameter.
+
+    Returns:
+        dict: The parameters dict with values cast to
+        their declared types
+            where possible.
+    """
     expected = function_def["parameters"]
     for name, info in expected.items():
         if name not in params:

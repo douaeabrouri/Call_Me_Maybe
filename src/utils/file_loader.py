@@ -10,6 +10,22 @@ INPUTS_FOLDER = "data/input/"
 
 
 def load_function_definitions(path: str) -> Any:
+    """Loads and validates function definitions from a JSON file.
+
+    Reads a JSON file from the inputs folder, parses its contents, and
+    validates each entry against the FunctionDefinition schema. Exits
+    the program with an error message if the file is not found, the
+    JSON is malformed, or any unexpected error occurs.
+
+    Args:
+        path (str): The relative path to the JSON file, appended to
+            the INPUTS_FOLDER base path.
+
+    Returns:
+        Any: A tuple of (raw_data, validated_functions) where raw_data
+            is the parsed JSON list and validated_functions is a list
+            of FunctionDefinition instances.
+    """
     try:
         full_path = Path(INPUTS_FOLDER + path)
         with open(full_path, "r", encoding=("utf-8")) as file:
